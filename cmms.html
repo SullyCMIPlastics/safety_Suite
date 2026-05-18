@@ -374,6 +374,7 @@ body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b
 /* ── LOGIN PAGE ── */
 #login-overlay{position:fixed;inset:0;z-index:99999;background:linear-gradient(145deg,#0f2744 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;}
 #login-overlay.hidden{display:none;}
+#set-pw-overlay.hidden{display:none!important;}
 .login-card{background:#fff;border-radius:20px;padding:44px 40px;max-width:440px;width:calc(100% - 32px);box-shadow:0 32px 80px rgba(0,0,0,.35);}
 .login-logo{text-align:center;margin-bottom:32px;}
 .login-logo-mark{width:64px;height:64px;background:linear-gradient(135deg,#1a3a5c,#3b82f6);border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
@@ -415,28 +416,73 @@ body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b
     </div>
 
     <div class="login-field">
-      <label>Select Your Name</label>
-      <select id="login-name-select">
-        <option value="">— Choose your name —</option>
-      </select>
-    </div>
-
-    <div class="login-divider">or sign in with email</div>
-
-    <div class="login-field">
       <label>Email Address</label>
-      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()">
     </div>
     <div class="login-field">
-      <label style="display:flex;align-items:center;gap:6px;">
-        Password
-        <span style="font-size:10px;background:#fef3c7;color:#92400e;padding:1px 7px;border-radius:10px;font-weight:600;">NOT REQUIRED YET</span>
-      </label>
-      <input type="password" id="login-password" placeholder="••••••••" disabled style="opacity:.45;cursor:not-allowed;">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
     </div>
 
     <button class="login-btn" onclick="doLogin()"><i class="fa-solid fa-right-to-bracket me-2"></i>Sign In</button>
     <div class="login-error" id="login-error"></div>
+
+    <div style="text-align:center;margin-top:18px;">
+      <a href="#" onclick="openSetPasswordModal();return false;" style="font-size:13px;color:#3b82f6;text-decoration:none;font-weight:600;">
+        <i class="fa-solid fa-key me-1"></i>Set / Reset Password
+      </a>
+      <div style="font-size:11px;color:#94a3b8;margin-top:4px;">New to the system? Use this link to create your password.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SET / RESET PASSWORD MODAL ===== -->
+<div id="set-pw-overlay" class="hidden" style="position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:420px;width:calc(100%-32px);box-shadow:0 32px 80px rgba(0,0,0,.35);">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,#1a3a5c,#3b82f6);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;">
+        <i class="fa-solid fa-key" style="font-size:24px;color:#fff;"></i>
+      </div>
+      <div style="font-size:20px;font-weight:800;color:#1a3a5c;">Set / Reset Password</div>
+      <div style="font-size:13px;color:#64748b;margin-top:4px;">Enter your CMI email to continue</div>
+    </div>
+
+    <!-- Step 1: Email verification -->
+    <div id="spw-step1">
+      <div class="login-field">
+        <label>Email Address</label>
+        <input type="email" id="spw-email" placeholder="your@email.com" autocomplete="email" onkeydown="if(event.key==='Enter')spwVerifyEmail()">
+      </div>
+      <button onclick="spwVerifyEmail()" style="width:100%;padding:13px;background:#1d4ed8;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;">
+        <i class="fa-solid fa-arrow-right me-2"></i>Continue
+      </button>
+    </div>
+
+    <!-- Step 2: Set new password -->
+    <div id="spw-step2" style="display:none;">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 14px;font-size:13px;color:#166534;margin-bottom:16px;">
+        <i class="fa-solid fa-circle-check me-2"></i>Account verified: <strong id="spw-name"></strong>
+      </div>
+      <div class="login-field">
+        <label>New Password</label>
+        <input type="password" id="spw-new" placeholder="Minimum 8 characters" autocomplete="new-password" onkeydown="if(event.key==='Enter')document.getElementById('spw-confirm').focus()">
+      </div>
+      <div class="login-field">
+        <label>Confirm Password</label>
+        <input type="password" id="spw-confirm" placeholder="Re-enter password" autocomplete="new-password" onkeydown="if(event.key==='Enter')spwSavePassword()">
+      </div>
+      <button onclick="spwSavePassword()" style="width:100%;padding:13px;background:#166534;color:#fff;border:none;border-radius:9px;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;">
+        <i class="fa-solid fa-lock me-2"></i>Save Password
+      </button>
+    </div>
+
+    <div id="spw-error" style="background:#fef2f2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:14px;display:none;"></div>
+
+    <div style="text-align:center;margin-top:18px;">
+      <a href="#" onclick="closeSetPasswordModal();return false;" style="font-size:13px;color:#94a3b8;text-decoration:none;">
+        <i class="fa-solid fa-arrow-left me-1"></i>Back to Sign In
+      </a>
+    </div>
   </div>
 </div>
 
@@ -4283,6 +4329,7 @@ const renderTechSlideover = (techId, activeTab) => {
         ${t.archived
           ? `<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="restoreTech('${techId}')"><i class="fa-solid fa-rotate-left me-1"></i>Restore</button>`
           : `<button class="btn btn-sm" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;" onclick="archiveTech('${techId}')"><i class="fa-solid fa-box-archive me-1"></i>Archive</button>`}
+        ${canDo('manage_techs') ? `<button class="btn btn-sm" style="background:#eff6ff;color:#1d4ed8;border:1px solid #93c5fd;" onclick="resetTechPasswordByManager('${techId}')"><i class="fa-solid fa-key me-1"></i>Reset Password</button>` : ''}
         <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;margin-left:auto;" onclick="deleteTech('${techId}')"><i class="fa-solid fa-trash me-1"></i>Delete</button>
       </div>`;
   } else if (activeTab === 'active-wos') {
@@ -6092,8 +6139,22 @@ const clearSession= () => sessionStorage.removeItem(_SK);
 
 const ROLE = { MANAGER:'manager', SUPERVISOR:'supervisor', TECH:'technician' };
 const _MASTER = 'mennen.suleiman@cmiplastics.com';
-// Hashed master credential — checked when password enforcement is enabled
-const _MASTER_HASH = 'CMI222PepsiWay'; // plaintext stored for now; will be hashed when enforcement enabled
+
+/* ── Password hashing (Web Crypto SHA-256 with email salt) ── */
+const _hashPw = async (password, email) => {
+  const salt = (email || '').toLowerCase().trim();
+  const data = new TextEncoder().encode(salt + password);
+  const buf  = await window.crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+};
+
+/* Seed master password once on first load */
+const _seedMasterPassword = async () => {
+  const auth = STORE.get('auth') || {};
+  if (auth[_MASTER]) return;
+  auth[_MASTER] = await _hashPw('Plastic!22567', _MASTER);
+  STORE.set('auth', auth);
+};
 
 const _roleLevel = (techRole, email) => {
   if ((email||'').toLowerCase().trim() === _MASTER) return ROLE.MANAGER;
@@ -6157,17 +6218,9 @@ const guardedOpenNewAsset = () => { if (requirePerm('manage_assets','add assets'
 const guardedOpenNewTech  = () => { if (requirePerm('manage_techs', 'add technicians'))         openTechModal(); };
 
 /* ── Login / logout ── */
-const _populateLoginDropdown = () => {
-  const sel = document.getElementById('login-name-select');
-  if (!sel) return;
-  const techs = STORE.getAll('technicians').filter(t => !t.archived);
-  sel.innerHTML = '<option value="">— Choose your name —</option>' +
-    techs.map(t => `<option value="${esc(t.id)}">${esc(t.first)} ${esc(t.last)} – ${esc(t.role)}</option>`).join('');
-};
-
 const showLoginPage = () => {
   const ov = document.getElementById('login-overlay');
-  if (ov) { ov.classList.remove('hidden'); _populateLoginDropdown(); }
+  if (ov) ov.classList.remove('hidden');
 };
 
 const hideLoginPage = () => {
@@ -6175,32 +6228,60 @@ const hideLoginPage = () => {
   if (ov) ov.classList.add('hidden');
 };
 
-const doLogin = () => {
-  const selId  = document.getElementById('login-name-select')?.value;
-  const email  = (document.getElementById('login-email')?.value||'').trim().toLowerCase();
-  const errEl  = document.getElementById('login-error');
+const doLogin = async () => {
+  const email   = (document.getElementById('login-email')?.value||'').trim().toLowerCase();
+  const password = document.getElementById('login-password')?.value || '';
+  const errEl   = document.getElementById('login-error');
+  const btn     = document.querySelector('#login-overlay .login-btn');
   errEl.style.display = 'none';
 
-  let tech = null;
-
-  // 1. Try match by email
-  if (email) {
-    tech = STORE.getAll('technicians').find(t => (t.email||'').toLowerCase().trim() === email);
-    // Master admin special-case (even if not yet in technicians)
-    if (!tech && email === _MASTER) {
-      tech = STORE.getAll('technicians').find(t =>
-        t.first.toLowerCase() === 'mennen' && t.last.toLowerCase() === 'suleiman'
-      );
-    }
+  if (!email) {
+    errEl.textContent = 'Please enter your email address.';
+    errEl.style.display = 'block';
+    return;
   }
-  // 2. Fall back to dropdown selection
-  if (!tech && selId) {
-    tech = STORE.getAll('technicians').find(t => t.id === selId);
+  if (!password) {
+    errEl.textContent = 'Please enter your password.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  // Disable button while hashing
+  if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
+
+  // Find technician by email
+  let tech = STORE.getAll('technicians').find(t => (t.email||'').toLowerCase().trim() === email);
+  if (!tech && email === _MASTER) {
+    tech = STORE.getAll('technicians').find(t =>
+      t.first.toLowerCase() === 'mennen' && t.last.toLowerCase() === 'suleiman'
+    );
   }
 
   if (!tech) {
-    errEl.textContent = 'Name or email not found. Please select your name from the list or check your email address.';
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
+    errEl.textContent = 'Email not found. Contact a Manager to be added to the system.';
     errEl.style.display = 'block';
+    return;
+  }
+
+  // Check password hash
+  const auth = STORE.get('auth') || {};
+  const storedHash = auth[email];
+
+  if (!storedHash) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
+    errEl.innerHTML = 'No password is set for this account. Use <strong>"Set / Reset Password"</strong> below to create one.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  const enteredHash = await _hashPw(password, email);
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
+
+  if (enteredHash !== storedHash) {
+    errEl.textContent = 'Incorrect password. Please try again or use "Set / Reset Password" to reset it.';
+    errEl.style.display = 'block';
+    document.getElementById('login-password').value = '';
     return;
   }
 
@@ -6212,14 +6293,111 @@ const doLogin = () => {
 
 const signOut = () => {
   clearSession();
-  // Clear name/email fields
-  const s = document.getElementById('login-name-select'); if (s) s.value = '';
   const e = document.getElementById('login-email'); if (e) e.value = '';
-  const err = document.getElementById('login-error'); if (err) err.style.display='none';
+  const p = document.getElementById('login-password'); if (p) p.value = '';
+  const err = document.getElementById('login-error'); if (err) err.style.display = 'none';
   showLoginPage();
-  // Hide user pill
-  document.getElementById('topbar-user-pill').style.display = 'none';
+  document.getElementById('topbar-user-pill').style.display  = 'none';
   document.getElementById('topbar-signout-btn').style.display = 'none';
+};
+
+/* ── Set / Reset Password modal ── */
+const openSetPasswordModal = () => {
+  const ov = document.getElementById('set-pw-overlay');
+  if (!ov) return;
+  document.getElementById('spw-email').value    = '';
+  document.getElementById('spw-new').value      = '';
+  document.getElementById('spw-confirm').value  = '';
+  document.getElementById('spw-error').style.display = 'none';
+  document.getElementById('spw-step1').style.display = 'block';
+  document.getElementById('spw-step2').style.display = 'none';
+  ov.classList.remove('hidden');
+};
+
+const closeSetPasswordModal = () => {
+  const ov = document.getElementById('set-pw-overlay');
+  if (ov) ov.classList.add('hidden');
+};
+
+const spwVerifyEmail = () => {
+  const email  = (document.getElementById('spw-email')?.value||'').trim().toLowerCase();
+  const errEl  = document.getElementById('spw-error');
+  errEl.style.display = 'none';
+
+  if (!email) {
+    errEl.textContent = 'Please enter your email address.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  let tech = STORE.getAll('technicians').find(t => (t.email||'').toLowerCase().trim() === email);
+  if (!tech && email === _MASTER) {
+    tech = STORE.getAll('technicians').find(t =>
+      t.first.toLowerCase() === 'mennen' && t.last.toLowerCase() === 'suleiman'
+    );
+  }
+
+  if (!tech) {
+    errEl.textContent = 'Email not found. Please contact a Manager to be added to the system.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  document.getElementById('spw-name').textContent = `${tech.first} ${tech.last}`;
+  document.getElementById('spw-step1').style.display = 'none';
+  document.getElementById('spw-step2').style.display = 'block';
+};
+
+const spwSavePassword = async () => {
+  const email   = (document.getElementById('spw-email')?.value||'').trim().toLowerCase();
+  const pw      = document.getElementById('spw-new')?.value || '';
+  const confirm = document.getElementById('spw-confirm')?.value || '';
+  const errEl   = document.getElementById('spw-error');
+  const btn     = document.querySelector('#spw-step2 button');
+  errEl.style.display = 'none';
+
+  if (!pw) {
+    errEl.textContent = 'Please enter a password.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pw.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pw !== confirm) {
+    errEl.textContent = 'Passwords do not match. Please re-enter.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  const hash = await _hashPw(pw, email);
+  const auth = STORE.get('auth') || {};
+  auth[email] = hash;
+  STORE.set('auth', auth);
+  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock me-2"></i>Save Password'; }
+
+  closeSetPasswordModal();
+  alert('Password saved successfully! You can now sign in with your email and new password.');
+};
+
+/* ── Manager: clear a technician's password so they must re-set it ── */
+const resetTechPasswordByManager = techId => {
+  if (!requirePerm('manage_techs','reset technician passwords')) return;
+  const tech = STORE.getAll('technicians').find(t => t.id === techId);
+  if (!tech) return;
+  const email = (tech.email || '').toLowerCase().trim();
+  if (!email) {
+    alert('This technician has no email address on file. Add an email first.');
+    return;
+  }
+  if (!confirm(`Clear the password for ${tech.first} ${tech.last}?\n\nThey will need to use the "Set / Reset Password" link on the login page to create a new password.`)) return;
+  const auth = STORE.get('auth') || {};
+  delete auth[email];
+  STORE.set('auth', auth);
+  alert(`Password cleared for ${tech.first} ${tech.last}. They can now set a new password from the login page.`);
 };
 
 const updateTopbarUser = () => {
@@ -6284,6 +6462,7 @@ const _ensureVendors = () => {
 // ============================================================
 seedData();
 _ensureVendors();
+_seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
 updateNotifBadge();
 
 /* Show login if no active session, otherwise jump straight to dashboard */
@@ -6338,6 +6517,8 @@ document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
   'woSortBy',
   'printWO','printPM',
   'doLogin','signOut','showPermDenied','requirePerm','canDo',
+  'openSetPasswordModal','closeSetPasswordModal','spwVerifyEmail','spwSavePassword',
+  'resetTechPasswordByManager',
   'guardedOpenNewPM','guardedOpenPMEdit','guardedOpenNewAsset','guardedOpenNewTech',
   'renderVendorGrid','openVendorSlideover','renderVendorSlideover',
   'openVendorModal','saveVendorModal','deleteVendor',
