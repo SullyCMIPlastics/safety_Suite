@@ -6504,11 +6504,100 @@ const _ensureAdminWOs = () => {
 };
 
 // ============================================================
+// TASK LIST MIGRATION — seeds 68 task groups from TaskGroups.csv import
+// ============================================================
+const _ensureTaskLists = () => {
+  const existing = STORE.getAll('tasklists');
+  const existingNames = new Set(existing.map(tl => tl.name.toLowerCase().trim()));
+  const today_ = new Date().toISOString().slice(0,10);
+
+  const groups = [
+    { name:'1000 KMD',                            taskCount:21 },
+    { name:'2000 KMD',                            taskCount:19 },
+    { name:'250 KMD',                             taskCount:17 },
+    { name:'500 KMD',                             taskCount:6  },
+    { name:'Annual Motor Rebuild/Replace',        taskCount:0  },
+    { name:'Annually 3',                          taskCount:1  },
+    { name:'Annually 4',                          taskCount:1  },
+    { name:'Annually 5',                          taskCount:1  },
+    { name:'Annually 6',                          taskCount:1  },
+    { name:'Annually 7',                          taskCount:1  },
+    { name:'Annually 8',                          taskCount:2  },
+    { name:'Annually 9',                          taskCount:1  },
+    { name:'Baler Monthly',                       taskCount:9  },
+    { name:'Baler Weekly',                        taskCount:5  },
+    { name:'Biannually 1',                        taskCount:1  },
+    { name:'Biannually 2',                        taskCount:2  },
+    { name:'Biannually 3',                        taskCount:1  },
+    { name:'Biannually 4',                        taskCount:2  },
+    { name:'Biannually 5',                        taskCount:2  },
+    { name:'Biannually 6',                        taskCount:1  },
+    { name:'Biannually 7',                        taskCount:1  },
+    { name:'Biannually 8',                        taskCount:1  },
+    { name:'Biannually 9',                        taskCount:1  },
+    { name:'Biannually 10',                       taskCount:1  },
+    { name:'Biannually 11',                       taskCount:1  },
+    { name:'Biannually 12',                       taskCount:1  },
+    { name:'CNC Annually',                        taskCount:5  },
+    { name:'CNC As Needed',                       taskCount:4  },
+    { name:'CNC Bi-Annual',                       taskCount:16 },
+    { name:'CNC Monthly',                         taskCount:7  },
+    { name:'CNC Weekly',                          taskCount:5  },
+    { name:'Calibration for Hoist',               taskCount:2  },
+    { name:"Disc Luber's Robotic Lines",          taskCount:3  },
+    { name:'Equalizing Charge',                   taskCount:4  },
+    { name:'Exhaust Fans',                        taskCount:2  },
+    { name:'Fire Extinguisher',                   taskCount:7  },
+    { name:'Floor Sweeper Annual',                taskCount:1  },
+    { name:'Floor Sweeper Monthly',               taskCount:4  },
+    { name:'Floor Sweeper Weekly',                taskCount:3  },
+    { name:'Forklift Battery Water Level Inspection', taskCount:4 },
+    { name:'Forklift Tasks',                      taskCount:0  },
+    { name:'Grease Thermoforming Lines',          taskCount:3  },
+    { name:'Monthly 2',                           taskCount:1  },
+    { name:'Monthly 3',                           taskCount:3  },
+    { name:'Monthly 4',                           taskCount:2  },
+    { name:'Monthly 5',                           taskCount:2  },
+    { name:'Monthly 6',                           taskCount:1  },
+    { name:'Monthly 7',                           taskCount:1  },
+    { name:'Monthly 8',                           taskCount:2  },
+    { name:'Monthly 9',                           taskCount:1  },
+    { name:'Monthly 10',                          taskCount:1  },
+    { name:'Monthly 11',                          taskCount:1  },
+    { name:'Monthly 12',                          taskCount:1  },
+    { name:'Monthly 13',                          taskCount:1  },
+    { name:'Monthly 14',                          taskCount:1  },
+    { name:'Monthly 15',                          taskCount:1  },
+    { name:'Monthly 16',                          taskCount:1  },
+    { name:'Monthly — Chain and Fluid',           taskCount:2  },
+    { name:'Nelmor Grinder Weekly',               taskCount:5  },
+    { name:'New Task Group #82',                  taskCount:3  },
+    { name:'New Task Group #89',                  taskCount:17 },
+    { name:'Restart Line',                        taskCount:8  },
+    { name:'Robot Annual',                        taskCount:2  },
+    { name:'Robot Monthly',                       taskCount:1  },
+    { name:'Scissor Lift Monthly',                taskCount:7  },
+    { name:'Thermoforming Lines Monthly',         taskCount:21 },
+    { name:'Thermoforming Annual',                taskCount:5  },
+  ];
+
+  let added = 0;
+  groups.forEach(g => {
+    if (existingNames.has(g.name.toLowerCase().trim())) return;
+    const desc = g.taskCount > 0 ? `${g.taskCount} task${g.taskCount>1?'s':''} — add steps in this list` : 'No tasks yet — add steps to this list';
+    existing.push({ id: uid(), name: g.name, desc, tasks: [], created: today_ });
+    added++;
+  });
+  if (added > 0) STORE.set('tasklists', existing);
+};
+
+// ============================================================
 // INIT
 // ============================================================
 seedData();
 _ensureVendors();
 _ensureAdminWOs();
+_ensureTaskLists();
 _seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
 updateNotifBadge();
 
