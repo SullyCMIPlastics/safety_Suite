@@ -572,7 +572,7 @@ body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b
   <div class="filter-bar">
     <select id="wo-filter-status" onchange="renderWOTable()"><option value="">All Statuses</option><option>Open</option><option>In Progress</option><option>On Hold</option><option>Waiting on Parts</option><option>Complete</option><option>Cancelled</option></select>
     <select id="wo-filter-priority" onchange="renderWOTable()"><option value="">All Priorities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option></select>
-    <select id="wo-filter-type" onchange="renderWOTable()"><option value="">All Types</option><option>Reactive</option><option>Preventive</option><option>Inspection</option><option>Corrective</option><option>Tool Change</option><option>Rebuild</option><option>Calibration</option><option>Damage</option><option>CI</option><option>General</option><option>Project</option></select>
+    <select id="wo-filter-type" onchange="renderWOTable()"><option value="">All Types</option><option>Reactive</option><option>Preventive</option><option>Inspection</option><option>Corrective</option><option>Tool Change</option><option>Rebuild</option><option>Calibration</option><option>Damage</option><option>CI</option><option>General</option><option>Project</option><option>Safety</option></select>
     <select id="wo-filter-asset" onchange="renderWOTable()"><option value="">All Assets</option></select>
     <input type="text" id="wo-filter-search" placeholder="Search WOs..." oninput="renderWOTable()" style="min-width:160px;">
     <label style="font-size:13px;display:flex;align-items:center;gap:6px;cursor:pointer;"><input type="checkbox" id="wo-show-archived" onchange="renderWOTable()"> Show Archived</label>
@@ -1725,6 +1725,7 @@ const WO_TYPE_COLORS = {
   'CI':           { bg:'#ffedd5', color:'#9a3412' },
   'General':      { bg:'#78350f', color:'#ffffff' },
   'Project':      { bg:'#fef3c7', color:'#92400e' },
+  'Safety':       { bg:'#fde68a', color:'#78350f' },
 };
 const typeBadge = t => {
   if (!t) return '<span style="color:#9ca3af;">—</span>';
@@ -2531,7 +2532,7 @@ const buildWOModalForm = w => {
   }).join('');
   const statuses = ['Open','In Progress','On Hold','Waiting on Parts','Complete','Cancelled'];
   const priorities = ['Critical','High','Medium','Low'];
-  const types = ['Reactive','Preventive','Inspection','Corrective','Tool Change','Rebuild','Calibration','Damage','CI','General','Project'];
+  const types = ['Reactive','Preventive','Inspection','Corrective','Tool Change','Rebuild','Calibration','Damage','CI','General','Project','Safety'];
 
   document.getElementById('wo-modal-body').innerHTML = `
     <div class="form-row">
@@ -6458,10 +6459,56 @@ const _ensureVendors = () => {
 };
 
 // ============================================================
+// ADMIN WO MIGRATION — adds new WOs from imports; skips any already in system
+// ============================================================
+const _ensureAdminWOs = () => {
+  const existing = STORE.getAll('workorders');
+  const existingNums = new Set(existing.map(w => w.num));
+  const assets = STORE.getAll('assets');
+
+  const findAsset = search => {
+    const a = assets.find(a => a.name.toLowerCase().includes(search.toLowerCase()));
+    return a ? { id: a.id, name: a.name } : { id: '', name: search };
+  };
+
+  const rows = [
+    { num:'WO-7239', title:"Chain tensioner on line 2 doesn't seem to be providing enough chain tension.", assetSearch:'Line 2',                   type:'Damage',     priority:'High',   assigned:'',             due:'2026-05-08', created:'2026-05-06', project:'' },
+    { num:'WO-7258', title:'Install Blue lights on stand up lift #1',                                      assetSearch:'Stand up Forklift 1 (SU1)',type:'Safety',     priority:'Low',    assigned:'Daniel Hines', due:'2026-05-29', created:'2026-05-14', project:'PLANT SAFETY' },
+    { num:'WO-7260', title:'Inspect all lift straps used by Roll changers and tool room for serviceability',assetSearch:'Compressor room',          type:'Inspection', priority:'High',   assigned:'Daniel Hines', due:'',           created:'2026-05-15', project:'' },
+    { num:'WO-7266', title:'Inspect the Clamp cart to ensure we have at least 7 of each size of clamp cylinder and other associated materials needed for clamps.', assetSearch:'Clamp Cylinders', type:'Inspection', priority:'High', assigned:'Chris Hahn', due:'2026-06-07', created:'2026-05-18', project:'' },
+    { num:'WO-7275', title:'Conduct a tour of the dumpster area to ensure no spillage has occurred and the site is clean.', assetSearch:'Warehouse South', type:'Inspection', priority:'Medium', assigned:'Daveon Lucas', due:'2026-05-22', created:'2026-05-18', project:'NCDEQ' },
+    { num:'WO-7276', title:'Inspect the spill cart and ensure it is appropriately stocked.',               assetSearch:'Spill Cart',                type:'Inspection', priority:'Medium', assigned:'Daveon Lucas', due:'2026-05-20', created:'2026-05-18', project:'' },
+    { num:'WO-7278', title:'Weekly PM',                                                                    assetSearch:'Floor Sweeper (Karcher)',   type:'Preventive', priority:'High',   assigned:'Cecil Morris', due:'2026-05-23', created:'2026-05-18', project:'' },
+  ];
+
+  let added = 0;
+  rows.forEach(r => {
+    if (existingNums.has(r.num)) return;
+    const { id: assetId, name: assetName } = findAsset(r.assetSearch);
+    existing.push({
+      id: uid(), num: r.num,
+      title: r.title,
+      asset: assetId, assetName,
+      assetLinks: assetId ? [{ id: assetId, name: assetName }] : [],
+      type: r.type, priority: r.priority, status: 'Open',
+      assigned: r.assigned, due: r.due,
+      estHrs: 0, actHrs: null, laborCost: 0,
+      desc: r.title + (r.project ? ` [${r.project}]` : ''),
+      notes: '', project: r.project, cancelReason: '',
+      created: r.created, archived: false, archivedAt: null, archivedReason: '',
+      mechanicNotes: [], partsUsed: [], partsDeducted: false,
+    });
+    added++;
+  });
+  if (added > 0) STORE.set('workorders', existing);
+};
+
+// ============================================================
 // INIT
 // ============================================================
 seedData();
 _ensureVendors();
+_ensureAdminWOs();
 _seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
 updateNotifBadge();
 
