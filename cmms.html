@@ -3602,7 +3602,11 @@ const renderPMTable = () => {
       <td>${esc(p.task)}</td>
       <td>${_pmLinks(p).map(a=>`<a class="clickable-link" onclick="event.stopPropagation();openAssetSlideover('${esc(a.id)}')">${esc(a.name)}</a>`).join('<span style="color:#cbd5e1;margin:0 3px;">|</span>') || '<span style="color:#94a3b8;">—</span>'}</td>
       <td>${esc(p.freq)}</td>
-      <td>${tl ? `<a class="clickable-link" onclick="event.stopPropagation();openTaskListSlideover('${tl.id}')">${esc(tl.name)}</a>` : '<span style="color:#94a3b8;font-size:12px;">—</span>'}</td>
+      <td onclick="event.stopPropagation();openPMEditModal('${p.id}','labor-tasks')" style="cursor:pointer;" title="Click to assign task list">
+        ${tl
+          ? `<span style="display:inline-flex;align-items:center;gap:5px;background:#eff6ff;color:#1d4ed8;padding:2px 9px;border-radius:10px;font-size:12px;font-weight:600;border:1px solid #bfdbfe;"><i class="fa-solid fa-list-check" style="font-size:10px;"></i>${esc(tl.name)}</span>`
+          : `<span style="display:inline-flex;align-items:center;gap:4px;color:#94a3b8;font-size:12px;font-style:italic;"><i class="fa-solid fa-plus" style="font-size:9px;"></i>Assign list</span>`}
+      </td>
       <td>${fmt(p.last)}</td>
       <td class="${pmStatusClass(p.next)}">${fmt(p.next)}</td>
       <td>${esc(p.assigned)}</td>
@@ -3680,6 +3684,7 @@ const generateDueWOs = () => {
           estHrs: pm.estHrs || 0, actHrs: null, laborCost: null,
           desc: `Auto-generated from PM schedule ${pm.num}.`,
           notes:'', cancelReason:'', created: now.toISOString().slice(0,10),
+          taskListId: pm.taskListId || '',
           mechanicNotes:[], partsUsed:[], partsDeducted:false,
           archived: false, archivedAt: null, archivedReason:'' });
         created++;
@@ -3696,12 +3701,12 @@ const generateDueWOs = () => {
 // ============================================================
 let editingPMId = null;
 
-const openPMEditModal = pmId => {
+const openPMEditModal = (pmId, startTab) => {
   editingPMId = pmId;
   _pmDraft = {}; // clear draft on each modal open
   const pm = STORE.getAll('pms').find(p => p.id === pmId);
   document.getElementById('pm-modal-title').textContent = pm ? `Edit ${pm.num}` : 'New PM';
-  buildPMModalForm(pm);
+  buildPMModalForm(pm, startTab || 'general');
   openModal('pm-edit-modal');
 };
 
@@ -4006,12 +4011,13 @@ const renderPMTabContent = (pm, tab) => {
 
 /* Preview a task list inside the Labor Tasks tab */
 const renderPMTaskListPreview = tl => {
-  if (!tl || !tl.tasks.length) return '';
-  const typeColors = { Work:'#dbeafe;color:#1d4ed8', Inspect:'#dcfce7;color:#166534', 'Meter Read/Record':'#ede9fe;color:#5b21b6', General:'#f1f5f9;color:#475569' };
+  if (!tl) return '';
+  if (!tl.tasks.length) return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;color:#94a3b8;font-size:13px;text-align:center;"><i class="fa-solid fa-list-check me-2"></i>${esc(tl.name)} — no tasks added yet. Go to PM &gt; Task Lists to add steps.</div>`;
+  const desigColors = { Work:'#dbeafe;color:#1d4ed8', Inspect:'#dcfce7;color:#166534', 'Meter Read/Record':'#ede9fe;color:#5b21b6', General:'#f1f5f9;color:#475569' };
   return `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:14px;">
-    <div style="font-weight:700;color:#1a3a5c;margin-bottom:10px;font-size:13px;">${esc(tl.name)} — ${tl.tasks.length} Tasks</div>
+    <div style="font-weight:700;color:#1a3a5c;margin-bottom:10px;font-size:13px;"><i class="fa-solid fa-list-check me-2" style="color:#3b82f6;"></i>${esc(tl.name)} — ${tl.tasks.length} task${tl.tasks.length!==1?'s':''}</div>
     <table class="cmms-table"><thead><tr><th>#</th><th>Type</th><th>Task Description</th></tr></thead><tbody>
-      ${tl.tasks.map((t,i)=>{const c=typeColors[t.type]||typeColors.General;return`<tr style="cursor:default;"><td style="font-weight:700;color:#64748b;">${i+1}</td><td><span style="background:${c};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${esc(t.type)}</span></td><td>${esc(t.desc)}</td></tr>`;}).join('')}
+      ${tl.tasks.map((t,i)=>{const c=desigColors[t.designation]||desigColors.General;return`<tr style="cursor:default;"><td style="font-weight:700;color:#64748b;">${i+1}</td><td><span style="background:${c};padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;">${esc(t.designation)}</span></td><td>${esc(t.desc)}</td></tr>`;}).join('')}
     </tbody></table></div>`;
 };
 
