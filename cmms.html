@@ -6360,8 +6360,10 @@ const _hashPw = async (password, email) => {
 /* Seed master password once on first load */
 const _seedMasterPassword = async () => {
   const auth = STORE.get('auth') || {};
-  if (auth[_MASTER]) return;
-  auth[_MASTER] = await _hashPw('Plastic!22567', _MASTER);
+  if (!auth[_MASTER]) {
+    auth[_MASTER] = await _hashPw('Plastic!22567', _MASTER);
+  }
+  // Always sync auth to server so password hashes are never stuck in localStorage only
   STORE.set('auth', auth);
 };
 
