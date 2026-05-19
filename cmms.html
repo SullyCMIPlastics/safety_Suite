@@ -1044,9 +1044,17 @@ body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b
 <!-- TOOL SLIDEOVER -->
 <div id="tool-slideover" class="slideover" style="width:520px;">
   <div class="slideover-header">
-    <div>
-      <div style="font-size:18px;font-weight:700;color:#1a3a5c;" id="so-tool-name"></div>
-      <div style="font-size:13px;color:#64748b;" id="so-tool-tag"></div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <!-- Tool photo thumbnail -->
+      <div id="so-tool-photo-wrap" style="width:56px;height:56px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#e0f2fe;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;border:2px solid #bae6fd;" onclick="document.getElementById('tool-photo-input').click()" title="Click to upload photo">
+        <img id="so-tool-photo-img" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+        <i id="so-tool-photo-icon" class="fa-solid fa-screwdriver-wrench" style="font-size:22px;color:#0369a1;"></i>
+        <input type="file" id="tool-photo-input" accept="image/*" style="display:none;" onchange="toolHandlePhotoUpload(this)">
+      </div>
+      <div>
+        <div style="font-size:18px;font-weight:700;color:#1a3a5c;" id="so-tool-name"></div>
+        <div style="font-size:13px;color:#64748b;" id="so-tool-tag"></div>
+      </div>
     </div>
     <button class="slideover-close" onclick="closeSlideover('tool-slideover')">×</button>
   </div>
@@ -5505,8 +5513,17 @@ const renderToolsGrid = () => {
     return `
     <div class="col-md-6 col-xl-3">
       <div class="asset-card" style="${archivedStyle}" onclick="openToolSlideover('${t.id}')">
-        <div class="asset-tag">${esc(t.tag||'—')}${t.archived?'<span style="background:#f1f5f9;color:#64748b;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px;">ARCHIVED</span>':''}</div>
-        <div class="asset-name">${esc(t.name)}</div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:6px;">
+          <div style="width:44px;height:44px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#e0f2fe;display:flex;align-items:center;justify-content:center;border:1px solid #bae6fd;">
+            ${t.photo
+              ? `<img src="${t.photo}" style="width:100%;height:100%;object-fit:cover;">`
+              : `<i class="fa-solid fa-screwdriver-wrench" style="font-size:18px;color:#0369a1;"></i>`}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div class="asset-tag" style="margin-bottom:2px;">${esc(t.tag||'—')}${t.archived?'<span style="background:#f1f5f9;color:#64748b;font-size:10px;padding:1px 6px;border-radius:8px;margin-left:6px;">ARCHIVED</span>':''}</div>
+            <div class="asset-name" style="margin-bottom:0;">${esc(t.name)}</div>
+          </div>
+        </div>
         <div class="mb-2"><span class="tag-badge">${esc(t.category)}</span></div>
         <div class="asset-meta"><i class="fa-solid fa-location-dot fa-xs me-1" style="color:#94a3b8;"></i>${esc(t.location||'—')}</div>
         ${t.assignedTo ? `<div class="asset-meta"><i class="fa-solid fa-user fa-xs me-1" style="color:#94a3b8;"></i>Assigned: ${esc(t.assignedTo)}</div>` : ''}
@@ -5524,6 +5541,16 @@ const openToolSlideover = toolId => {
   if (!tool) return;
   document.getElementById('so-tool-name').textContent = tool.name;
   document.getElementById('so-tool-tag').textContent = tool.tag ? `Tag: ${tool.tag}` : tool.category;
+  // Load photo into header thumbnail
+  const img  = document.getElementById('so-tool-photo-img');
+  const icon = document.getElementById('so-tool-photo-icon');
+  if (tool.photo) {
+    img.src = tool.photo; img.style.display = 'block'; if (icon) icon.style.display = 'none';
+  } else {
+    img.src = ''; img.style.display = 'none'; if (icon) icon.style.display = '';
+  }
+  // Store current tool id for photo handler
+  document.getElementById('tool-photo-input').dataset.toolId = toolId;
   renderToolSlideoverBody(toolId);
   openSlideover('tool-slideover');
 };
@@ -5533,6 +5560,14 @@ const renderToolSlideoverBody = toolId => {
   if (!tool) return;
   const techs = STORE.getAll('technicians').filter(t => !t.archived);
   document.getElementById('so-tool-body').innerHTML = `
+    <!-- Photo upload row -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid #f1f5f9;">
+      <button type="button" onclick="document.getElementById('tool-photo-input').click()" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;">
+        <i class="fa-solid fa-upload me-1"></i>${tool.photo ? 'Change Photo' : 'Upload Photo'}
+      </button>
+      ${tool.photo ? `<button type="button" onclick="toolRemovePhoto('${toolId}')" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-trash me-1"></i>Remove Photo</button>` : ''}
+      <span style="font-size:11px;color:#94a3b8;">Click the icon in the header or use this button · Max 5 MB</span>
+    </div>
     <div class="form-row">
       <div class="form-group"><label>Tool Name</label><input id="tl-name" value="${esc(tool.name)}"></div>
       <div class="form-group"><label>Tool Tag / ID</label><input id="tl-tag" value="${esc(tool.tag||'')}"></div>
@@ -5563,7 +5598,61 @@ const renderToolSlideoverBody = toolId => {
         ? `<button class="btn btn-sm" style="background:#dcfce7;color:#166534;border:1px solid #86efac;" onclick="restoreTool('${toolId}')"><i class="fa-solid fa-rotate-left me-1"></i>Restore</button>`
         : `<button class="btn btn-sm" style="background:#fff7ed;color:#c2410c;border:1px solid #fdba74;" onclick="archiveTool('${toolId}')"><i class="fa-solid fa-box-archive me-1"></i>Archive</button>`}
       <button class="btn btn-sm" style="background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;margin-left:auto;" onclick="deleteTool('${toolId}')"><i class="fa-solid fa-trash me-1"></i>Delete</button>
+    </div>
+    <!-- Attachments -->
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
+      <div class="attach-section-hdr">
+        <span><i class="fa-solid fa-paperclip me-2" style="color:#3b82f6;"></i>Attachments</span>
+        <label class="attach-upload-btn" style="cursor:pointer;">
+          <i class="fa-solid fa-plus"></i> Add File
+          <input type="file" multiple style="display:none;" onchange="handleAttachmentUpload(this,'tool','${toolId}','tool-attach-${toolId}')">
+        </label>
+      </div>
+      <div id="tool-attach-${toolId}"></div>
     </div>`;
+  // Render existing attachments
+  setTimeout(() => renderAttachments('tool', toolId, `tool-attach-${toolId}`), 0);
+};
+
+const toolHandlePhotoUpload = input => {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Photo must be under 5 MB.'); input.value=''; return; }
+  const toolId = input.dataset.toolId;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    // Update header thumbnail immediately
+    const img  = document.getElementById('so-tool-photo-img');
+    const icon = document.getElementById('so-tool-photo-icon');
+    if (img)  { img.src = dataUrl; img.style.display = 'block'; }
+    if (icon) { icon.style.display = 'none'; }
+    // Persist to store
+    if (toolId) {
+      const tools = STORE.getAll('tools');
+      const i = tools.findIndex(t => t.id === toolId);
+      if (i >= 0) { tools[i].photo = dataUrl; STORE.set('tools', tools); }
+    }
+    // Re-render body to show "Change/Remove" buttons
+    if (toolId) renderToolSlideoverBody(toolId);
+    renderToolsGrid();
+  };
+  reader.readAsDataURL(file);
+};
+
+const toolRemovePhoto = toolId => {
+  if (!confirm('Remove the tool photo?')) return;
+  const tools = STORE.getAll('tools');
+  const i = tools.findIndex(t => t.id === toolId);
+  if (i >= 0) { delete tools[i].photo; STORE.set('tools', tools); }
+  const img  = document.getElementById('so-tool-photo-img');
+  const icon = document.getElementById('so-tool-photo-icon');
+  if (img)  { img.src = ''; img.style.display = 'none'; }
+  if (icon) { icon.style.display = ''; }
+  const fi = document.getElementById('tool-photo-input');
+  if (fi) fi.value = '';
+  renderToolSlideoverBody(toolId);
+  renderToolsGrid();
 };
 
 const saveToolDetails = toolId => {
@@ -6656,7 +6745,7 @@ document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
   'openImportAssetsModal','importHandleFile','importUpdateMapping','importBackToStep1','executeImportAssets',
   'archiveAsset','restoreAsset','deleteAsset',
   'archiveTech','restoreTech','deleteTech',
-  'archiveTool','restoreTool','deleteTool',
+  'archiveTool','restoreTool','deleteTool','toolHandlePhotoUpload','toolRemovePhoto',
   'switchPMPageTab','renderTaskListsTab','openTaskListSlideover','openNewTaskListSlideover',
   'switchPMTab','pmTogglePaused','pmToggleNoEndDate','pmUpdateAssetThumb','pmPreviewTaskList',
   'renderTaskListSlideover','saveTaskListMeta','saveAllTaskRows','deleteTaskList',
