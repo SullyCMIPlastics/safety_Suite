@@ -1,0 +1,7 @@
+.DS_Store
+.claude/
+*.csv
+test_script.js
+training.html
+kpi-weekly.html
+.git/

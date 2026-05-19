@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  cmms:
+    build: .
+    container_name: cmms
+    ports:
+      - "80:80"
+    restart: unless-stopped
