@@ -2,6 +2,15 @@ services:
   cmms:
     build: .
     container_name: cmms
-    ports:
-      - "80:80"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.cmms.rule=Host(`cmms.cmi`)"
+      - "traefik.http.routers.cmms.entrypoints=web"
+      - "traefik.http.services.cmms.loadbalancer.server.port=80"
+    networks:
+      - web
     restart: unless-stopped
+
+networks:
+  web:
+    external: true
