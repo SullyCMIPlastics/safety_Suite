@@ -5706,10 +5706,28 @@ const deleteTool = id => {
   renderToolsGrid();
 };
 
+let _newToolId = null; // pre-generated ID so attachments can be linked before save
+
 const openToolModal = () => {
+  _newToolId = uid(); // generate ID upfront so attachments/photo work immediately
+  window._toolModalPhoto = null;
   document.getElementById('tool-modal-title').textContent = 'Add Tool';
   const techs = STORE.getAll('technicians').filter(t => !t.archived);
   document.getElementById('tool-modal-body').innerHTML = `
+    <!-- Photo upload -->
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px;padding:14px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+      <div id="nt-photo-box" style="width:72px;height:72px;border-radius:10px;overflow:hidden;flex-shrink:0;background:#e0f2fe;display:flex;align-items:center;justify-content:center;border:2px dashed #bae6fd;cursor:pointer;" onclick="document.getElementById('nt-photo-input').click()" title="Click to upload photo">
+        <img id="nt-photo-preview" src="" style="width:100%;height:100%;object-fit:cover;display:none;">
+        <i id="nt-photo-icon" class="fa-solid fa-camera" style="font-size:26px;color:#0369a1;"></i>
+        <input type="file" id="nt-photo-input" accept="image/*" style="display:none;" onchange="toolModalPhotoUpload(this)">
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:4px;">Tool Photo</div>
+        <button type="button" onclick="document.getElementById('nt-photo-input').click()" style="background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd;border-radius:6px;padding:5px 14px;font-size:12px;font-weight:600;cursor:pointer;"><i class="fa-solid fa-upload me-1"></i>Upload Photo</button>
+        <div style="font-size:11px;color:#94a3b8;margin-top:4px;">JPG, PNG, WEBP · Max 5 MB</div>
+      </div>
+    </div>
+    <!-- Fields -->
     <div class="form-row">
       <div class="form-group"><label>Tool Name *</label><input id="nt-name" placeholder="e.g. Impact Wrench 1/2in"></div>
       <div class="form-group"><label>Tool Tag / ID</label><input id="nt-tag" placeholder="e.g. TL-001"></div>
@@ -5733,29 +5751,61 @@ const openToolModal = () => {
       <div class="form-group"><label>Purchase Date</label><input type="date" id="nt-date"></div>
       <div class="form-group"><label>Purchase Cost ($)</label><input type="number" id="nt-cost" value="0" step="0.01"></div>
     </div>
-    <div class="form-group"><label>Notes / Condition</label><textarea id="nt-notes" rows="2"></textarea></div>`;
+    <div class="form-group"><label>Notes / Condition</label><textarea id="nt-notes" rows="2"></textarea></div>
+    <!-- Attachments -->
+    <div style="margin-top:16px;padding-top:14px;border-top:1px solid #e2e8f0;">
+      <div class="attach-section-hdr">
+        <span><i class="fa-solid fa-paperclip me-2" style="color:#3b82f6;"></i>Attachments <span style="font-size:11px;color:#94a3b8;font-weight:400;">(optional — add docs, manuals, images)</span></span>
+        <label class="attach-upload-btn" style="cursor:pointer;">
+          <i class="fa-solid fa-plus"></i> Add File
+          <input type="file" multiple style="display:none;" onchange="handleAttachmentUpload(this,'tool','${_newToolId}','nt-attach-zone')">
+        </label>
+      </div>
+      <div id="nt-attach-zone"></div>
+    </div>`;
+  setTimeout(() => renderAttachments('tool', _newToolId, 'nt-attach-zone'), 0);
   openModal('tool-edit-modal');
+};
+
+const toolModalPhotoUpload = input => {
+  const file = input.files[0];
+  if (!file) return;
+  if (file.size > 5 * 1024 * 1024) { alert('Photo must be under 5 MB.'); input.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    window._toolModalPhoto = e.target.result;
+    const img  = document.getElementById('nt-photo-preview');
+    const icon = document.getElementById('nt-photo-icon');
+    const box  = document.getElementById('nt-photo-box');
+    if (img)  { img.src = e.target.result; img.style.display = 'block'; }
+    if (icon) { icon.style.display = 'none'; }
+    if (box)  { box.style.border = '2px solid #3b82f6'; }
+  };
+  reader.readAsDataURL(file);
 };
 
 const saveToolModal = () => {
   const name = document.getElementById('nt-name')?.value.trim();
   if (!name) { alert('Tool name is required.'); return; }
   const tools = STORE.getAll('tools');
-  tools.push({
-    id: uid(), name,
-    tag: document.getElementById('nt-tag').value,
-    category: document.getElementById('nt-cat').value,
-    status: document.getElementById('nt-status').value,
-    location: document.getElementById('nt-location').value,
-    assignedTo: document.getElementById('nt-assigned').value,
-    mfr: document.getElementById('nt-mfr').value,
-    model: document.getElementById('nt-model').value,
+  const newTool = {
+    id: _newToolId || uid(), name,
+    tag:          document.getElementById('nt-tag').value,
+    category:     document.getElementById('nt-cat').value,
+    status:       document.getElementById('nt-status').value,
+    location:     document.getElementById('nt-location').value,
+    assignedTo:   document.getElementById('nt-assigned').value,
+    mfr:          document.getElementById('nt-mfr').value,
+    model:        document.getElementById('nt-model').value,
     purchaseDate: document.getElementById('nt-date').value,
-    cost: parseFloat(document.getElementById('nt-cost').value)||0,
-    notes: document.getElementById('nt-notes').value,
+    cost:         parseFloat(document.getElementById('nt-cost').value)||0,
+    notes:        document.getElementById('nt-notes').value,
     archived: false, created: today(),
-  });
+  };
+  if (window._toolModalPhoto) { newTool.photo = window._toolModalPhoto; window._toolModalPhoto = null; }
+  tools.push(newTool);
   STORE.set('tools', tools);
+  _newToolId = null;
   closeModal('tool-edit-modal');
   renderToolsGrid();
 };
@@ -6745,7 +6795,7 @@ document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
   'openImportAssetsModal','importHandleFile','importUpdateMapping','importBackToStep1','executeImportAssets',
   'archiveAsset','restoreAsset','deleteAsset',
   'archiveTech','restoreTech','deleteTech',
-  'archiveTool','restoreTool','deleteTool','toolHandlePhotoUpload','toolRemovePhoto',
+  'archiveTool','restoreTool','deleteTool','toolHandlePhotoUpload','toolRemovePhoto','toolModalPhotoUpload',
   'switchPMPageTab','renderTaskListsTab','openTaskListSlideover','openNewTaskListSlideover',
   'switchPMTab','pmTogglePaused','pmToggleNoEndDate','pmUpdateAssetThumb','pmPreviewTaskList',
   'renderTaskListSlideover','saveTaskListMeta','saveAllTaskRows','deleteTaskList',
