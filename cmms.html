@@ -2254,28 +2254,35 @@ const renderWOSlideover = woId => {
       </div>`;
   } else {
     let actionBtns = '';
+    const completeBtn = `<button class="btn-complete wo-action-btns" onclick="showCompleteForm('${w.id}')"><i class="fa-solid fa-check me-1"></i>Complete</button>`;
+    const cancelBtn   = canDo('cancel_wo')
+      ? `<button class="btn-cancel wo-action-btns" onclick="showCancelForm('${w.id}')"><i class="fa-solid fa-xmark me-1"></i>Cancel</button>`
+      : `<button class="btn-cancel wo-action-btns" style="opacity:.4;" onclick="showPermDenied('You don\\'t have permission to cancel work orders.')"><i class="fa-solid fa-lock me-1"></i>Cancel</button>`;
     if (w.status === 'Open') {
       actionBtns = `
         <button class="btn-start wo-action-btns" onclick="woAction('start','${w.id}')"><i class="fa-solid fa-play me-1"></i>Start</button>
+        ${completeBtn}
         <button class="btn-hold wo-action-btns" onclick="woAction('hold','${w.id}')"><i class="fa-solid fa-pause me-1"></i>Put On Hold</button>
         <button class="btn-waiting wo-action-btns" onclick="woAction('waiting','${w.id}')"><i class="fa-solid fa-hourglass-half me-1"></i>Waiting on Parts</button>
-        ${canDo('cancel_wo')?`<button class="btn-cancel wo-action-btns" onclick="showCancelForm('${w.id}')"><i class="fa-solid fa-xmark me-1"></i>Cancel</button>`:`<button class="btn-cancel wo-action-btns" style="opacity:.4;" onclick="showPermDenied('You don\\'t have permission to cancel work orders.')"><i class="fa-solid fa-lock me-1"></i>Cancel</button>`}`;
+        ${cancelBtn}`;
     } else if (w.status === 'In Progress') {
       actionBtns = `
-        <button class="btn-complete wo-action-btns" onclick="showCompleteForm('${w.id}')"><i class="fa-solid fa-check me-1"></i>Complete</button>
+        ${completeBtn}
         <button class="btn-hold wo-action-btns" onclick="woAction('hold','${w.id}')"><i class="fa-solid fa-pause me-1"></i>Put On Hold</button>
         <button class="btn-waiting wo-action-btns" onclick="woAction('waiting','${w.id}')"><i class="fa-solid fa-hourglass-half me-1"></i>Waiting on Parts</button>
-        ${canDo('cancel_wo')?`<button class="btn-cancel wo-action-btns" onclick="showCancelForm('${w.id}')"><i class="fa-solid fa-xmark me-1"></i>Cancel</button>`:`<button class="btn-cancel wo-action-btns" style="opacity:.4;" onclick="showPermDenied('You don\\'t have permission to cancel work orders.')"><i class="fa-solid fa-lock me-1"></i>Cancel</button>`}`;
+        ${cancelBtn}`;
     } else if (w.status === 'On Hold') {
       actionBtns = `
         <button class="btn-resume wo-action-btns" onclick="woAction('resume','${w.id}')"><i class="fa-solid fa-play me-1"></i>Resume</button>
+        ${completeBtn}
         <button class="btn-waiting wo-action-btns" onclick="woAction('waiting','${w.id}')"><i class="fa-solid fa-hourglass-half me-1"></i>Waiting on Parts</button>
-        ${canDo('cancel_wo')?`<button class="btn-cancel wo-action-btns" onclick="showCancelForm('${w.id}')"><i class="fa-solid fa-xmark me-1"></i>Cancel</button>`:`<button class="btn-cancel wo-action-btns" style="opacity:.4;" onclick="showPermDenied('You don\\'t have permission to cancel work orders.')"><i class="fa-solid fa-lock me-1"></i>Cancel</button>`}`;
+        ${cancelBtn}`;
     } else if (w.status === 'Waiting on Parts') {
       actionBtns = `
         <button class="btn-resume wo-action-btns" onclick="woAction('resume','${w.id}')"><i class="fa-solid fa-play me-1"></i>Resume</button>
+        ${completeBtn}
         <button class="btn-hold wo-action-btns" onclick="woAction('hold','${w.id}')"><i class="fa-solid fa-pause me-1"></i>Put On Hold</button>
-        ${canDo('cancel_wo')?`<button class="btn-cancel wo-action-btns" onclick="showCancelForm('${w.id}')"><i class="fa-solid fa-xmark me-1"></i>Cancel</button>`:`<button class="btn-cancel wo-action-btns" style="opacity:.4;" onclick="showPermDenied('You don\\'t have permission to cancel work orders.')"><i class="fa-solid fa-lock me-1"></i>Cancel</button>`}`;
+        ${cancelBtn}`;
     }
     statusSection = `
       <div class="wo-status-bar">
