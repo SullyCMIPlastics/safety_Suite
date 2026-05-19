@@ -6,10 +6,11 @@ services:
       - cmms_data:/data
       - ./cmms.html:/app/static/index.html:ro
     labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.cmms.rule=Host(`cmms.cmi`)"
-      - "traefik.http.routers.cmms.entrypoints=web"
-      - "traefik.http.services.cmms.loadbalancer.server.port=8000"
+      - 'traefik.enable=true'
+      - 'traefik.http.routers.cmms.rule=Host(`cmms.cmi`)'
+      - 'traefik.http.routers.cmms.entrypoints=websecure'
+      - 'traefik.http.routers.cmms.tls=true'
+      - 'traefik.http.services.cmms.loadbalancer.server.port=8000'
     networks:
       - web
     restart: unless-stopped
