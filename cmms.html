@@ -6804,33 +6804,37 @@ const _ensureTaskLists = () => {
 // ============================================================
 // INIT
 // ============================================================
+
+// Show the login screen immediately — don't block on server round-trip
+if (getSession()) {
+  hideLoginPage();
+} else {
+  showLoginPage();
+}
+
+// Wire up modal backdrop close — works right away regardless of data load
+document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
+  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+});
+
+// Load data from server in background, then seed/ensure and render
 (async () => {
-  // Pull latest data from the server BEFORE seeding / ensuring records.
-  // This means SEED_VERSION check and _ensure* deduplication all see server state.
   await STORE.syncWithServer();
 
   seedData();
   _ensureVendors();
   _ensureAdminWOs();
   _ensureTaskLists();
-  await _seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
+  await _seedMasterPassword();
   updateNotifBadge();
 
-  /* Show login if no active session, otherwise jump straight to dashboard */
   if (getSession()) {
     hideLoginPage();
     updateTopbarUser();
     renderDashboard();
   } else {
-    showLoginPage();
-    // Render dashboard in background so it's ready
-    renderDashboard();
+    renderDashboard(); // pre-render dashboard while user logs in
   }
-
-  // Modal close on backdrop click
-  document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
-    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
-  });
 })();
 
 // ============================================================
