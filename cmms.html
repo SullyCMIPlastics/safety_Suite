@@ -1144,9 +1144,61 @@ body{margin:0;font-family:'Segoe UI',sans-serif;background:#f0f4f8;color:#1e293b
 // STORE HELPER
 // ============================================================
 const STORE = {
-  get: k => { try { return JSON.parse(localStorage.getItem('cmmi_' + k) || 'null'); } catch { return null; } },
-  set: (k, v) => localStorage.setItem('cmmi_' + k, JSON.stringify(v)),
+  get:    k => { try { return JSON.parse(localStorage.getItem('cmmi_' + k) || 'null'); } catch { return null; } },
+  set:    (k, v) => {
+    localStorage.setItem('cmmi_' + k, JSON.stringify(v));
+    // Fire-and-forget sync to server — localStorage stays authoritative for reads
+    fetch('/api/store/' + k, {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify(v),
+    }).catch(() => {/* offline / server unreachable — localStorage is the fallback */});
+  },
   getAll: k => STORE.get(k) || [],
+
+  /**
+   * Called once at startup.
+   * If the server has data → populate localStorage from it (multi-device sync).
+   * If the server is empty but localStorage has data → push it up (first-time migration).
+   * Returns true if server was authoritative, false if we fell back to localStorage.
+   */
+  syncWithServer: async () => {
+    const DATA_KEYS = ['technicians','assets','workorders','pms','parts','vendors',
+                       'attachments','tasklists','tools','auth'];
+    try {
+      const res = await fetch('/api/store');
+      if (!res.ok) return false;
+      const serverData = await res.json();
+
+      if (Object.keys(serverData).length > 0) {
+        // Server has data — load it into localStorage so all STORE.get() calls see it
+        Object.entries(serverData).forEach(([k, v]) => {
+          try { localStorage.setItem('cmmi_' + k, JSON.stringify(v)); } catch(e) {}
+        });
+        console.log('[STORE] loaded', Object.keys(serverData).length, 'keys from server');
+        return true;
+      }
+
+      // Server is empty — migrate whatever is in localStorage up to the server
+      let pushed = 0;
+      for (const k of DATA_KEYS) {
+        const v = STORE.get(k);
+        if (v !== null) {
+          await fetch('/api/store/' + k, {
+            method:  'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body:    JSON.stringify(v),
+          }).catch(() => {});
+          pushed++;
+        }
+      }
+      if (pushed > 0) console.log('[STORE] migrated', pushed, 'keys from localStorage → server');
+      return false;
+    } catch(e) {
+      console.warn('[STORE] server unreachable, using localStorage:', e.message);
+      return false;
+    }
+  },
 };
 
 const uid = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
@@ -6748,28 +6800,34 @@ const _ensureTaskLists = () => {
 // ============================================================
 // INIT
 // ============================================================
-seedData();
-_ensureVendors();
-_ensureAdminWOs();
-_ensureTaskLists();
-_seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
-updateNotifBadge();
+(async () => {
+  // Pull latest data from the server BEFORE seeding / ensuring records.
+  // This means SEED_VERSION check and _ensure* deduplication all see server state.
+  await STORE.syncWithServer();
 
-/* Show login if no active session, otherwise jump straight to dashboard */
-if (getSession()) {
-  hideLoginPage();
-  updateTopbarUser();
-  renderDashboard();
-} else {
-  showLoginPage();
-  // Render dashboard in background so it's ready
-  renderDashboard();
-}
+  seedData();
+  _ensureVendors();
+  _ensureAdminWOs();
+  _ensureTaskLists();
+  await _seedMasterPassword(); // seeds mennen.suleiman@cmiplastics.com → Plastic!22567 on first load
+  updateNotifBadge();
 
-// Modal close on backdrop click
-document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
-  modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
-});
+  /* Show login if no active session, otherwise jump straight to dashboard */
+  if (getSession()) {
+    hideLoginPage();
+    updateTopbarUser();
+    renderDashboard();
+  } else {
+    showLoginPage();
+    // Render dashboard in background so it's ready
+    renderDashboard();
+  }
+
+  // Modal close on backdrop click
+  document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
+    modal.addEventListener('click', e => { if (e.target === modal) modal.classList.remove('show'); });
+  });
+})();
 
 // ============================================================
 // EXPOSE ALL FUNCTIONS TO window (required for inline onclick= attrs)

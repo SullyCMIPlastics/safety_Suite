@@ -1,14 +1,17 @@
-FROM nginx:alpine
+FROM python:3.12-slim
 
-# Remove default nginx static assets
-RUN rm -rf /usr/share/nginx/html/*
+WORKDIR /app
 
-# Copy the CMMS app as index.html
-COPY cmms.html /usr/share/nginx/html/index.html
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Custom nginx config for single-file app
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy API server
+COPY main.py .
 
-EXPOSE 80
+# Directories created at runtime via volume mounts
+RUN mkdir -p /app/static /data
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE 8000
+
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
