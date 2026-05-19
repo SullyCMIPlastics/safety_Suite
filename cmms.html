@@ -6457,6 +6457,10 @@ const doLogin = async () => {
     return;
   }
 
+  // Wait for server data to finish loading before checking credentials
+  if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
+  await _appReady;
+
   // Disable button while hashing
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
 
@@ -6500,6 +6504,7 @@ const doLogin = async () => {
   _setSession({ techId: tech.id, name: `${tech.first} ${tech.last}`, email: tech.email||email, role: tech.role, roleLevel });
   hideLoginPage();
   updateTopbarUser();
+  renderDashboard();
 };
 
 const signOut = () => {
@@ -6805,6 +6810,11 @@ const _ensureTaskLists = () => {
 // INIT
 // ============================================================
 
+// Promise that resolves once server data is loaded and seeded.
+// doLogin awaits this so it never checks empty localStorage.
+let _resolveAppReady;
+const _appReady = new Promise(resolve => { _resolveAppReady = resolve; });
+
 // Show the login screen immediately — don't block on server round-trip
 if (getSession()) {
   hideLoginPage();
@@ -6820,13 +6830,14 @@ document.querySelectorAll('.modal-backdrop-custom').forEach(modal => {
 // Load data from server in background, then seed/ensure and render
 (async () => {
   await STORE.syncWithServer();
-
   seedData();
   _ensureVendors();
   _ensureAdminWOs();
   _ensureTaskLists();
   await _seedMasterPassword();
   updateNotifBadge();
+
+  _resolveAppReady(); // unblock any doLogin calls waiting for data
 
   if (getSession()) {
     hideLoginPage();
