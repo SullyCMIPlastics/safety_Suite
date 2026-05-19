@@ -6516,46 +6516,53 @@ const doLogin = async () => {
     return;
   }
 
-  // Wait for server data to finish loading before checking credentials
+  // Wait for app data (technician list) to finish loading
   if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
   await _appReady;
-
-  // Disable button while hashing
   if (btn) { btn.disabled = true; btn.textContent = 'Signing in…'; }
 
-  // Find technician by email
+  const resetBtn = () => { if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; } };
+
+  // Find technician record by email
   let tech = STORE.getAll('technicians').find(t => (t.email||'').toLowerCase().trim() === email);
   if (!tech && email === _MASTER) {
     tech = STORE.getAll('technicians').find(t =>
       t.first.toLowerCase() === 'mennen' && t.last.toLowerCase() === 'suleiman'
     );
   }
-
   if (!tech) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
+    resetBtn();
     errEl.textContent = 'Email not found. Contact a Manager to be added to the system.';
     errEl.style.display = 'block';
     return;
   }
 
-  // Check password hash
-  const auth = STORE.get('auth') || {};
-  const storedHash = auth[email];
-
-  if (!storedHash) {
-    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
-    errEl.innerHTML = 'No password is set for this account. Use <strong>"Set / Reset Password"</strong> below to create one.';
+  // Verify password server-side — no client-side crypto required
+  let authResult;
+  try {
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    authResult = await res.json();
+  } catch(e) {
+    resetBtn();
+    errEl.textContent = 'Network error — could not reach server. Please try again.';
     errEl.style.display = 'block';
     return;
   }
 
-  const enteredHash = await _hashPw(password, email);
-  if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-right-to-bracket me-2"></i>Sign In'; }
+  resetBtn();
 
-  if (enteredHash !== storedHash) {
-    errEl.textContent = 'Incorrect password. Please try again or use "Set / Reset Password" to reset it.';
+  if (!authResult.ok) {
+    if (authResult.error === 'no_password') {
+      errEl.innerHTML = 'No password set for this account. Use <strong>"Set / Reset Password"</strong> below.';
+    } else {
+      errEl.textContent = 'Incorrect password. Please try again or use "Set / Reset Password" to reset it.';
+      document.getElementById('login-password').value = '';
+    }
     errEl.style.display = 'block';
-    document.getElementById('login-password').value = '';
     return;
   }
 

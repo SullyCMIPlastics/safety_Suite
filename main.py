@@ -4,10 +4,11 @@ Serves the static HTML app and provides a key-value store backed by SQLite.
 Every browser STORE.set() fires a PUT here; on page load the browser fetches
 all keys so any device sees the same data.
 """
-import json, os, sqlite3
+import hashlib, json, os, sqlite3
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 DB_PATH  = os.environ.get("DB_PATH",  "/data/cmms.db")
 APP_DIR  = os.environ.get("APP_DIR",  "/app/static")
@@ -29,12 +30,41 @@ def db():
     conn.commit()
     return conn
 
+def db_get(key: str):
+    conn = db()
+    row = conn.execute("SELECT value FROM store WHERE key=?", (key,)).fetchone()
+    conn.close()
+    return json.loads(row[0]) if row else None
+
 
 # ── API routes (must be registered BEFORE the static-file catch-all) ─────────
 
 @app.get("/api/health")
 def health():
     return {"status": "ok"}
+
+
+class AuthRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth")
+def auth_login(req: AuthRequest):
+    """
+    Verify credentials server-side using Python's hashlib (same SHA-256 algorithm
+    as the browser). Returns {ok, error} — never exposes the stored hash.
+    """
+    email = (req.email or "").lower().strip()
+    pw_hash = hashlib.sha256((email + req.password).encode("utf-8")).hexdigest()
+
+    auth = db_get("auth") or {}
+    stored = auth.get(email)
+
+    if not stored:
+        return {"ok": False, "error": "no_password"}
+    if stored != pw_hash:
+        return {"ok": False, "error": "wrong_password"}
+    return {"ok": True}
 
 
 @app.get("/api/store")
