@@ -2164,7 +2164,9 @@ const renderWOTable = () => {
   const fAsset = document.getElementById('wo-filter-asset')?.value;
   const fSearch = document.getElementById('wo-filter-search')?.value.toLowerCase();
 
-  if (!showArchived) wos = wos.filter(w => !w.archived);
+  // Complete and Cancelled WOs are auto-archived — show them when that status is selected
+  const statusShowsArchived = fStatus === 'Complete' || fStatus === 'Cancelled';
+  if (!showArchived && !statusShowsArchived) wos = wos.filter(w => !w.archived);
   if (fStatus) wos = wos.filter(w => w.status === fStatus);
   if (fPriority) wos = wos.filter(w => w.priority === fPriority);
   if (fType) wos = wos.filter(w => w.type === fType);
