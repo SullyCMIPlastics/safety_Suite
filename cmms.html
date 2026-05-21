@@ -6601,9 +6601,10 @@ const closeSetPasswordModal = () => {
   if (ov) ov.classList.add('hidden');
 };
 
-const spwVerifyEmail = () => {
+const spwVerifyEmail = async () => {
   const email  = (document.getElementById('spw-email')?.value||'').trim().toLowerCase();
   const errEl  = document.getElementById('spw-error');
+  const btn    = document.querySelector('#spw-step1 button');
   errEl.style.display = 'none';
 
   if (!email) {
@@ -6611,6 +6612,11 @@ const spwVerifyEmail = () => {
     errEl.style.display = 'block';
     return;
   }
+
+  // Wait for technician list to load from server
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  await _appReady;
+  if (btn) { btn.disabled = false; btn.textContent = 'Continue'; }
 
   let tech = STORE.getAll('technicians').find(t => (t.email||'').toLowerCase().trim() === email);
   if (!tech && email === _MASTER) {
@@ -6655,18 +6661,37 @@ const spwSavePassword = async () => {
   }
 
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
-  const hash = await _hashPw(pw, email);
-  const auth = STORE.get('auth') || {};
-  auth[email] = hash;
-  STORE.set('auth', auth);
+
+  // Save password via server — no client-side crypto needed
+  let result;
+  try {
+    const res = await fetch('/api/auth/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password: pw }),
+    });
+    result = await res.json();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock me-2"></i>Save Password'; }
+    errEl.textContent = 'Network error — could not reach server. Please try again.';
+    errEl.style.display = 'block';
+    return;
+  }
+
   if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-lock me-2"></i>Save Password'; }
 
+  if (!result.ok) {
+    errEl.textContent = 'Failed to save password. Please try again.';
+    errEl.style.display = 'block';
+    return;
+  }
+
   closeSetPasswordModal();
-  alert('Password saved successfully! You can now sign in with your email and new password.');
+  alert('Password saved! You can now sign in with your email and new password.');
 };
 
 /* ── Manager: clear a technician's password so they must re-set it ── */
-const resetTechPasswordByManager = techId => {
+const resetTechPasswordByManager = async techId => {
   if (!requirePerm('manage_techs','reset technician passwords')) return;
   const tech = STORE.getAll('technicians').find(t => t.id === techId);
   if (!tech) return;
@@ -6675,10 +6700,17 @@ const resetTechPasswordByManager = techId => {
     alert('This technician has no email address on file. Add an email first.');
     return;
   }
-  if (!confirm(`Clear the password for ${tech.first} ${tech.last}?\n\nThey will need to use the "Set / Reset Password" link on the login page to create a new password.`)) return;
-  const auth = STORE.get('auth') || {};
-  delete auth[email];
-  STORE.set('auth', auth);
+  if (!confirm(`Clear the password for ${tech.first} ${tech.last}?\n\nThey will need to use the "Set / Reset Password" link on the login page to create a new one.`)) return;
+  try {
+    await fetch('/api/auth/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
+  } catch(e) {
+    alert('Network error — could not reach server.');
+    return;
+  }
   alert(`Password cleared for ${tech.first} ${tech.last}. They can now set a new password from the login page.`);
 };
 

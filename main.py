@@ -50,20 +50,53 @@ class AuthRequest(BaseModel):
 
 @app.post("/api/auth")
 def auth_login(req: AuthRequest):
-    """
-    Verify credentials server-side using Python's hashlib (same SHA-256 algorithm
-    as the browser). Returns {ok, error} — never exposes the stored hash.
-    """
+    """Verify credentials. Returns {ok, error} — never exposes the stored hash."""
     email = (req.email or "").lower().strip()
     pw_hash = hashlib.sha256((email + req.password).encode("utf-8")).hexdigest()
-
     auth = db_get("auth") or {}
     stored = auth.get(email)
-
     if not stored:
         return {"ok": False, "error": "no_password"}
     if stored != pw_hash:
         return {"ok": False, "error": "wrong_password"}
+    return {"ok": True}
+
+
+class SetPasswordRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/api/auth/set")
+def auth_set(req: SetPasswordRequest):
+    """Set (or reset) a password. Computes hash server-side."""
+    email = (req.email or "").lower().strip()
+    if not email or not req.password:
+        return {"ok": False, "error": "missing_fields"}
+    pw_hash = hashlib.sha256((email + req.password).encode("utf-8")).hexdigest()
+    conn = db()
+    row = conn.execute("SELECT value FROM store WHERE key='auth'").fetchone()
+    auth = json.loads(row[0]) if row else {}
+    auth[email] = pw_hash
+    conn.execute("INSERT OR REPLACE INTO store (key, value) VALUES ('auth', ?)", (json.dumps(auth),))
+    conn.commit()
+    conn.close()
+    return {"ok": True}
+
+
+class ClearPasswordRequest(BaseModel):
+    email: str
+
+@app.post("/api/auth/clear")
+def auth_clear(req: ClearPasswordRequest):
+    """Clear a technician's password so they must re-set it."""
+    email = (req.email or "").lower().strip()
+    conn = db()
+    row = conn.execute("SELECT value FROM store WHERE key='auth'").fetchone()
+    auth = json.loads(row[0]) if row else {}
+    auth.pop(email, None)
+    conn.execute("INSERT OR REPLACE INTO store (key, value) VALUES ('auth', ?)", (json.dumps(auth),))
+    conn.commit()
+    conn.close()
     return {"ok": True}
 
 
