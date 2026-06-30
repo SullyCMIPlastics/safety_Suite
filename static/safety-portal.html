@@ -1592,7 +1592,42 @@ function renderInvestigations(){
 }
 
 function newInvestigation(){ openInvestigationForm(null); }
-function editInvestigation(id){ openInvestigationForm(investigations.find(x=>x.id===id)); }
+function editInvestigation(id){
+  const inv = investigations.find(x=>x.id===id);
+  openInvestigationForm(inv);
+  if(inv && (inv.status==='Pending Review' || inv.status==='Complete')){
+    setTimeout(()=>lockInvestigationParts(inv.status), 50);
+  }
+}
+
+function lockInvestigationParts(status){
+  const form = document.getElementById('inv-form');
+  if(!form) return;
+  // Find the Step 5 section header then collect all fields BEFORE it
+  const allFields = [...form.querySelectorAll('input,select,textarea')];
+  const step5Fields = new Set([
+    'writtenBy','writtenDept','writtenTitle','writtenDate','teamMembers',
+    'reviewedBy','reviewerEmail','reviewerTitle','reviewDate'
+  ]);
+  allFields.forEach(el => {
+    const inStep5 = step5Fields.has(el.name);
+    if(status==='Complete'){
+      // lock everything
+      el.setAttribute('readonly','');
+      el.setAttribute('disabled','');
+      el.style.background='var(--bg)';
+      el.style.pointerEvents='none';
+    } else if(status==='Pending Review'){
+      // lock Parts 1-3 only; Step 5 stays editable
+      if(!inStep5){
+        el.setAttribute('readonly','');
+        el.setAttribute('disabled','');
+        el.style.background='var(--bg)';
+        el.style.pointerEvents='none';
+      }
+    }
+  });
+}
 
 function deleteInvestigation(id){
   if(!confirm('Delete this investigation? This cannot be undone.')) return;
@@ -1604,6 +1639,13 @@ function deleteInvestigation(id){
 function openInvestigationForm(inv){
   const id = inv ? inv.id : 'INV-'+String(invIdCounter++).padStart(3,'0');
   const d = inv || {};
+  // status-based locking
+  const isPendingReview = d.status === 'Pending Review';
+  const isComplete      = d.status === 'Complete';
+  const lockMain  = isPendingReview || isComplete; // Parts 1-3 locked
+  const lockAll   = isComplete;                    // Step 5 also locked
+  const RO = lockMain ? 'readonly' : '';
+  const roStyle = lockMain ? 'background:var(--bg);color:var(--text)' : '';
 
   const chk = (name, val, checked) =>
     `<label style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;margin-right:14px;margin-bottom:6px">
@@ -1637,11 +1679,17 @@ function openInvestigationForm(inv){
       </div>
       <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
         <button class="btn btn-secondary" onclick="printInvestigation()">🖨 Print / PDF</button>
-        <button class="btn btn-secondary" onclick="saveInvestigation('${id}','Draft')">💾 Save Draft</button>
-        <button class="btn btn-primary" onclick="saveInvestigation('${id}','Complete')">✓ Save & Complete</button>
-        <button class="btn btn-secondary" onclick="renderInvestigations()">← Back</button>
+        ${!lockAll ? `<button class="btn btn-secondary" onclick="renderInvestigations()">← Back</button>` : ''}
+        ${isComplete ? '' : isPendingReview
+          ? `<button class="btn btn-primary" onclick="saveInvestigation('${id}','Complete')">✓ Submit Review & Lock</button>`
+          : `<button class="btn btn-secondary" onclick="saveInvestigation('${id}','Draft')">💾 Save Draft</button>
+             <button class="btn btn-primary" onclick="saveInvestigation('${id}','Pending Review')">✓ Mark Complete & Send for Review</button>`}
+        ${isComplete ? `<button class="btn btn-secondary" onclick="renderInvestigations()">← Back to List</button>` : ''}
       </div>
     </div>
+
+    ${isComplete ? `<div style="background:#d1fae5;border:1.5px solid #6ee7b7;border-radius:8px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">🔒</span><div><strong style="color:#065f46">Investigation Locked — Final Artifact</strong><br><span style="font-size:12px;color:#047857">This report was reviewed and closed by ${d.reviewedBy||'the reviewer'}. No further edits are permitted.</span></div></div>` : ''}
+    ${isPendingReview ? `<div style="background:#fef3c7;border:1.5px solid #fcd34d;border-radius:8px;padding:12px 18px;margin-bottom:18px;display:flex;align-items:center;gap:10px"><span style="font-size:20px">⏳</span><div><strong style="color:#92400e">Pending Reviewer Sign-Off</strong><br><span style="font-size:12px;color:#b45309">Parts 1–3 are locked. The assigned reviewer (${d.reviewedBy||'—'}) must complete Step 5 and click <em>Submit Review &amp; Lock</em> to close this investigation.</span></div></div>` : ''}
 
     <form id="inv-form">
 
@@ -1897,23 +1945,29 @@ function openInvestigationForm(inv){
 
       ${sec('Step 5 — Completion & Review')}
       <div class="form-grid" style="margin-bottom:4px">
-        ${field('Written By', inp('writtenBy','','Full name'))}
-        ${field('Department', inp('writtenDept',''))}
-        ${field('Title', inp('writtenTitle',''))}
-        ${field('Date Completed', inp('writtenDate','date'))}
-        ${field('Names of Investigation Team Members', inp('teamMembers','','Comma-separated names'), true)}
-        ${field('Reviewed By', inp('reviewedBy','','Supervisor or manager name'))}
-        ${field('Reviewer Title', inp('reviewerTitle',''))}
-        ${field('Review Date', inp('reviewDate','date'))}
+        ${field('Written By', `<input type="text" name="writtenBy" placeholder="Full name" value="${d.writtenBy||''}" ${lockMain?'readonly':''} style="${roStyle}">`)}
+        ${field('Department', `<input type="text" name="writtenDept" value="${d.writtenDept||''}" ${lockMain?'readonly':''} style="${roStyle}">`)}
+        ${field('Title', `<input type="text" name="writtenTitle" value="${d.writtenTitle||''}" ${lockMain?'readonly':''} style="${roStyle}">`)}
+        ${field('Date Completed', `<input type="date" name="writtenDate" value="${d.writtenDate||''}" ${lockMain?'readonly':''} style="${roStyle}">`)}
+        ${field('Names of Investigation Team Members', `<input type="text" name="teamMembers" placeholder="Comma-separated names" value="${d.teamMembers||''}" ${lockMain?'readonly':''} style="${roStyle}">`, true)}
+        ${field('Reviewed By (Name)', `<input type="text" name="reviewedBy" placeholder="Supervisor or manager name" value="${d.reviewedBy||''}" ${lockAll?'readonly':''} style="${lockAll?roStyle:''}">`)}
+        ${field('Reviewer Email', `<input type="email" name="reviewerEmail" placeholder="reviewer@cmiplastics.com" value="${d.reviewerEmail||''}" ${lockAll?'readonly':''} style="${lockAll?roStyle:''}">`)}
+        ${field('Reviewer Title', `<input type="text" name="reviewerTitle" value="${d.reviewerTitle||''}" ${lockAll?'readonly':''} style="${lockAll?roStyle:''}">`)}
+        ${field('Review Date', `<input type="date" name="reviewDate" value="${d.reviewDate||''}" ${lockAll?'readonly':''} style="${lockAll?roStyle:''}">`)}
       </div>
 
     </div><!-- end Part 3 card -->
 
     <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;padding-bottom:24px">
-      <button type="button" class="btn btn-secondary" onclick="renderInvestigations()">← Back to List</button>
       <button type="button" class="btn btn-secondary" onclick="printInvestigation()">🖨 Print / Save as PDF</button>
-      <button type="button" class="btn btn-secondary" onclick="saveInvestigation('${id}','Draft')">💾 Save Draft</button>
-      <button type="button" class="btn btn-primary" onclick="saveInvestigation('${id}','Complete')">✓ Mark Complete & Save</button>
+      ${isComplete
+        ? `<button type="button" class="btn btn-secondary" onclick="renderInvestigations()">← Back to List</button>`
+        : isPendingReview
+          ? `<button type="button" class="btn btn-secondary" onclick="renderInvestigations()">← Back to List</button>
+             <button type="button" class="btn btn-primary" onclick="saveInvestigation('${id}','Complete')">✓ Submit Review &amp; Lock</button>`
+          : `<button type="button" class="btn btn-secondary" onclick="renderInvestigations()">← Back to List</button>
+             <button type="button" class="btn btn-secondary" onclick="saveInvestigation('${id}','Draft')">💾 Save Draft</button>
+             <button type="button" class="btn btn-primary" onclick="saveInvestigation('${id}','Pending Review')">✓ Mark Complete &amp; Send for Review</button>`}
     </div>
 
     </form>
@@ -1976,7 +2030,8 @@ function saveInvestigation(id, status){
     writtenBy: get('writtenBy'), writtenDept: get('writtenDept'),
     writtenTitle: get('writtenTitle'), writtenDate: get('writtenDate'),
     teamMembers: get('teamMembers'), reviewedBy: get('reviewedBy'),
-    reviewerTitle: get('reviewerTitle'), reviewDate: get('reviewDate'),
+    reviewerEmail: get('reviewerEmail'), reviewerTitle: get('reviewerTitle'),
+    reviewDate: get('reviewDate'),
     savedAt: new Date().toISOString(),
     attachments: _attStore.inv.filter(Boolean)
   };
@@ -1985,8 +2040,16 @@ function saveInvestigation(id, status){
   const idx = investigations.findIndex(x=>x.id===id);
   if(idx>=0) investigations[idx]=inv; else investigations.unshift(inv);
   STORE.set('investigations',investigations);
-  alert(`✓ Investigation ${id} ${status==='Complete'?'completed':'saved as draft'} successfully.`);
-  if(status==='Complete') renderInvestigations();
+
+  if(status==='Pending Review'){
+    alert(`✓ Investigation ${id} marked complete and sent for review.\n\nParts 1–3 are now locked. The reviewer (${inv.reviewedBy||'assigned reviewer'}) must open this investigation, complete Step 5, and click "Submit Review & Lock" to finalize it.`);
+    editInvestigation(id);
+  } else if(status==='Complete'){
+    alert(`✓ Investigation ${id} has been reviewed and permanently locked.\n\nThis report is now a final artifact and cannot be edited.`);
+    renderInvestigations();
+  } else {
+    alert(`✓ Investigation ${id} saved as draft.`);
+  }
 }
 
 function printInvestigation(){
@@ -2063,7 +2126,7 @@ function closeModal(){ document.getElementById('modal-overlay')?.remove(); }
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function fmtDate(d){ if(!d)return '—'; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
-function badgeCls(s){ return ({Open:'badge badge-red','Under Review':'badge badge-amber',Closed:'badge badge-green','In Progress':'badge badge-blue','Completed':'badge badge-green','Findings Noted':'badge badge-amber'})[s]||'badge badge-grey'; }
+function badgeCls(s){ return ({Open:'badge badge-red','Under Review':'badge badge-amber',Closed:'badge badge-green','In Progress':'badge badge-blue','Completed':'badge badge-green','Findings Noted':'badge badge-amber','Pending Review':'badge badge-orange',Complete:'badge badge-green'})[s]||'badge badge-grey'; }
 
 // ─── Auth System ──────────────────────────────────────────────────────────────
 
