@@ -163,9 +163,81 @@ textarea{resize:vertical;min-height:80px}
   .print-hide{display:none!important}
   @page{margin:18mm 14mm;size:A4}
 }
+
+/* ── Auth / Login ─────────────────────────────────────────────────── */
+#login-overlay{position:fixed;inset:0;z-index:9999;background:linear-gradient(145deg,var(--navy) 0%,#1A3A6E 100%);display:flex;align-items:center;justify-content:center;padding:20px}
+#login-overlay.hidden{display:none}
+.login-box{background:#fff;border-radius:16px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.4)}
+.login-header{background:var(--navy);padding:28px 32px 22px;text-align:center}
+.login-logo{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:4px}
+.login-title{font-size:22px;font-weight:800;color:#fff}
+.login-sub{font-size:12px;color:rgba(255,255,255,.55);margin-top:4px}
+.login-body{padding:28px 32px}
+.login-field{margin-bottom:16px}
+.login-field label{display:block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.login-field input{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;font-family:inherit;color:var(--text);transition:border-color .15s}
+.login-field input:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,166,35,.15)}
+.login-btn{width:100%;padding:12px;background:var(--amber);color:var(--navy);border:none;border-radius:8px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;letter-spacing:.02em;margin-top:4px;transition:background .15s}
+.login-btn:hover{background:var(--amber-dark)}
+.login-btn:disabled{opacity:.6;cursor:not-allowed}
+.login-error{background:#FEE2E2;color:#991B1B;border:1px solid #FECACA;border-radius:7px;padding:10px 14px;font-size:13px;font-weight:600;margin-top:12px;display:none}
+.login-link{font-size:12px;color:var(--amber);cursor:pointer;text-align:center;margin-top:14px;font-weight:600}
+.login-link:hover{text-decoration:underline}
+.pw-rules{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.6}
+/* Topbar user pill */
+.user-pill{display:flex;align-items:center;gap:10px}
+.user-pill-name{font-size:13px;font-weight:700;color:var(--text)}
+.user-pill-role{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:.04em;text-transform:uppercase}
+.role-admin{background:#FEF3C7;color:#92400E}
+.role-investigator{background:#DBEAFE;color:#1E40AF}
+.role-viewer{background:#D1FAE5;color:#065F46}
+.logout-btn{padding:6px 14px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg);color:var(--text-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.logout-btn:hover{border-color:var(--red);color:var(--red)}
+/* Read-only banner */
+.ro-banner{background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:10px 16px;font-size:13px;font-weight:600;color:#1E40AF;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+/* Inactivity warning */
+#inactivity-warn{position:fixed;bottom:24px;right:24px;background:var(--navy);color:#fff;padding:16px 22px;border-radius:10px;font-size:13px;font-weight:600;z-index:8888;box-shadow:0 8px 32px rgba(0,0,0,.3);display:none;max-width:300px}
+#inactivity-warn strong{color:var(--amber)}
+/* User management */
+.user-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--border)}
+.user-row:last-child{border-bottom:none}
+.user-avatar{width:40px;height:40px;border-radius:50%;background:var(--navy);color:var(--amber);font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.user-info{flex:1}
+.user-name{font-size:14px;font-weight:700}
+.user-email{font-size:12px;color:var(--text-muted)}
 </style>
 </head>
 <body>
+
+<!-- Login Overlay -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-header">
+      <div class="login-logo">CMI Plastics</div>
+      <div class="login-title">Safety Portal</div>
+      <div class="login-sub">Authorized personnel only</div>
+    </div>
+    <div class="login-body" id="login-body-content">
+      <div class="login-field">
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="your@cmiplastics.com" autocomplete="email">
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Enter password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button class="login-btn" id="login-btn" onclick="doLogin()">Sign In →</button>
+      <div class="login-error" id="login-error"></div>
+      <div class="login-link" onclick="showForgotPassword()">Forgot password? Contact your administrator</div>
+    </div>
+  </div>
+</div>
+
+<!-- Inactivity Warning -->
+<div id="inactivity-warn">
+  ⏱ You will be logged out in <strong id="inactivity-countdown">5:00</strong> due to inactivity.<br>
+  <span style="font-size:12px;opacity:.8">Click anywhere to stay logged in.</span>
+</div>
 
 <nav id="sidebar">
   <div class="logo-wrap">
@@ -194,12 +266,23 @@ textarea{resize:vertical;min-height:80px}
     <div class="nav-lbl">Resources</div>
     <div class="nav-item" onclick="nav('contacts')"><span class="nav-icon">📞</span> Emergency Contacts</div>
   </div>
+  <div class="nav-sect" id="admin-nav-sect" style="display:none">
+    <div class="nav-lbl">Administration</div>
+    <div class="nav-item" onclick="nav('users')"><span class="nav-icon">👤</span> User Management</div>
+  </div>
 </nav>
 
 <div id="main">
   <header id="topbar">
     <div class="topbar-title" id="page-title">Dashboard</div>
     <div id="topbar-actions"></div>
+    <div class="user-pill" id="user-pill" style="display:none">
+      <div>
+        <div class="user-pill-name" id="user-pill-name"></div>
+        <div style="text-align:right;margin-top:2px"><span class="user-pill-role" id="user-pill-role"></span></div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
   </header>
   <div id="content"></div>
 </div>
@@ -1838,9 +1921,298 @@ function fmtDate(d){ if(!d)return '—'; const dt=new Date(d+'T12:00:00'); retur
 function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
 function badgeCls(s){ return ({Open:'badge badge-red','Under Review':'badge badge-amber',Closed:'badge badge-green','In Progress':'badge badge-blue','Completed':'badge badge-green','Findings Noted':'badge badge-amber'})[s]||'badge badge-grey'; }
 
+// ─── Auth System ──────────────────────────────────────────────────────────────
+
+const USERS = [
+  {email:'mennen.suleiman@cmiplastics.com', name:'Mennen Suleiman',   role:'admin'},
+  {email:'mark.philpott@cmiplastics.com',   name:'Mark Philpott',     role:'admin'},
+  {email:'alexander.trull@cmiplastics.com', name:'Alexander Trull',   role:'investigator'},
+  {email:'jacob.valverde@cmiplastics.com',  name:'Jacob Valverde',    role:'investigator'},
+  {email:'silvia.garcia@cmiplastics.com',   name:'Silvia Garcia',     role:'viewer'},
+  {email:'isabelle.flock@cmiplastics.com',  name:'Isabelle Flock',    role:'viewer'},
+];
+
+const SESSION_KEY = 'cmi_sp_session';
+const AUTH_KEY    = 'cmi_sp_auth';
+const INACTIVITY_MS = 30 * 60 * 1000; // 30 minutes
+const WARN_MS       =  5 * 60 * 1000; //  5 minute warning
+
+let _inactivityTimer = null;
+let _warnTimer = null;
+let _countdownInterval = null;
+
+// ── Password hashing (Web Crypto SHA-256, server-migration ready) ─────────────
+async function hashPw(email, password){
+  const raw = email.toLowerCase().trim() + ':' + password;
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ── Password validation ───────────────────────────────────────────────────────
+function validatePw(pw){
+  if(!pw || pw.length < 6) return 'Password must be at least 6 characters.';
+  if((pw.match(/[A-Z]/g)||[]).length < 2) return 'Password must contain at least 2 uppercase letters.';
+  return null;
+}
+
+// ── Session helpers ───────────────────────────────────────────────────────────
+function getSession(){ try{ return JSON.parse(sessionStorage.getItem(SESSION_KEY)); }catch{ return null; } }
+function setSession(s){ sessionStorage.setItem(SESSION_KEY, JSON.stringify({...s, lastActivity:Date.now()})); }
+function clearSession(){ sessionStorage.removeItem(SESSION_KEY); }
+
+function currentRole(){ return getSession()?.role || null; }
+function isAdmin(){ return currentRole()==='admin'; }
+function isInvestigator(){ return currentRole()==='investigator'||isAdmin(); }
+function canEdit(){ return isInvestigator(); }
+function canDelete(){ return isAdmin(); }
+
+// ── Auth store (passwords) ────────────────────────────────────────────────────
+function getAuth(){ return STORE.get(AUTH_KEY)||{}; }
+function saveAuth(a){ STORE.set(AUTH_KEY,a); }
+
+// ── Login overlay ─────────────────────────────────────────────────────────────
+function showLogin(){
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('user-pill').style.display='none';
+  document.getElementById('admin-nav-sect').style.display='none';
+  setTimeout(()=>document.getElementById('login-email')?.focus(),100);
+}
+function hideLogin(){
+  document.getElementById('login-overlay').classList.add('hidden');
+  const s = getSession();
+  if(!s) return;
+  const pill = document.getElementById('user-pill');
+  document.getElementById('user-pill-name').textContent = s.name;
+  const roleEl = document.getElementById('user-pill-role');
+  roleEl.textContent = s.role.charAt(0).toUpperCase()+s.role.slice(1);
+  roleEl.className = 'user-pill-role role-'+s.role;
+  pill.style.display='flex';
+  if(isAdmin()) document.getElementById('admin-nav-sect').style.display='block';
+}
+
+async function doLogin(){
+  const email    = document.getElementById('login-email').value.toLowerCase().trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+  errEl.style.display='none';
+
+  const user = USERS.find(u=>u.email===email);
+  if(!user){ errEl.textContent='Email not found. Contact an administrator.'; errEl.style.display='block'; return; }
+
+  const auth = getAuth();
+  if(!auth[email]){
+    showSetPassword(email, user.name, false);
+    return;
+  }
+
+  btn.disabled=true; btn.textContent='Signing in…';
+  const hash = await hashPw(email, password);
+  if(hash !== auth[email]){
+    btn.disabled=false; btn.textContent='Sign In →';
+    errEl.textContent='Incorrect password. Try again or contact an administrator to reset it.';
+    errEl.style.display='block';
+    document.getElementById('login-password').value='';
+    return;
+  }
+
+  setSession({email, name:user.name, role:user.role});
+  btn.disabled=false; btn.textContent='Sign In →';
+  document.getElementById('login-password').value='';
+  hideLogin();
+  startInactivityTimer();
+  updateBadge();
+  render();
+}
+
+function doLogout(){
+  if(!confirm('Sign out of the CMI Safety Portal?')) return;
+  clearSession();
+  clearInactivityTimers();
+  showLogin();
+}
+
+// ── Set / Reset password ──────────────────────────────────────────────────────
+function showSetPassword(email, name, isReset){
+  document.getElementById('login-body-content').innerHTML = `
+    <div style="font-size:15px;font-weight:800;margin-bottom:4px">${isReset?'Reset Password':'Welcome, '+name.split(' ')[0]+'!'}</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">${isReset?'Set a new password for <strong>'+email+'</strong>.':'Please set your password to continue.'}</div>
+    <div class="login-field"><label>New Password</label><input type="password" id="set-pw1" placeholder="Min 6 chars, 2 uppercase"></div>
+    <div class="login-field"><label>Confirm Password</label><input type="password" id="set-pw2" placeholder="Repeat password" onkeydown="if(event.key==='Enter')doSetPassword('${email}','${isReset}')"></div>
+    <div class="pw-rules">✓ Minimum 6 characters &nbsp; ✓ At least 2 uppercase letters</div>
+    <button class="login-btn" style="margin-top:16px" onclick="doSetPassword('${email}',${isReset})">Set Password →</button>
+    <div class="login-error" id="set-pw-error"></div>
+    ${isReset?'':'<div class="login-link" onclick="location.reload()">← Back to sign in</div>'}`;
+}
+
+async function doSetPassword(email, isReset){
+  const pw1 = document.getElementById('set-pw1').value;
+  const pw2 = document.getElementById('set-pw2').value;
+  const errEl = document.getElementById('set-pw-error');
+  errEl.style.display='none';
+  const err = validatePw(pw1);
+  if(err){ errEl.textContent=err; errEl.style.display='block'; return; }
+  if(pw1!==pw2){ errEl.textContent='Passwords do not match.'; errEl.style.display='block'; return; }
+  const auth = getAuth();
+  auth[email] = await hashPw(email, pw1);
+  saveAuth(auth);
+  if(isReset){
+    closeModal();
+    alert('✓ Password updated successfully.');
+  } else {
+    document.getElementById('login-body-content').innerHTML = `
+      <div style="text-align:center;padding:16px 0">
+        <div style="font-size:32px;margin-bottom:10px">✓</div>
+        <div style="font-size:16px;font-weight:800;margin-bottom:6px">Password Set!</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px">You can now sign in with your new password.</div>
+        <button class="login-btn" onclick="location.reload()">Sign In</button>
+      </div>`;
+  }
+}
+
+function showForgotPassword(){
+  alert('Please contact an administrator to reset your password:\n\nMennen Suleiman — mennen.suleiman@cmiplastics.com\nMark Philpott — mark.philpott@cmiplastics.com');
+}
+
+// ── Inactivity timer ──────────────────────────────────────────────────────────
+function resetActivity(){
+  const s = getSession(); if(!s) return;
+  setSession(s);
+  hideInactivityWarn();
+  clearInactivityTimers();
+  startInactivityTimer();
+}
+
+function startInactivityTimer(){
+  clearInactivityTimers();
+  _inactivityTimer = setTimeout(()=>{
+    showInactivityWarn();
+    let remaining = 300;
+    _countdownInterval = setInterval(()=>{
+      remaining--;
+      const m = Math.floor(remaining/60), sec = remaining%60;
+      const el = document.getElementById('inactivity-countdown');
+      if(el) el.textContent = m+':'+(sec<10?'0':'')+sec;
+      if(remaining<=0){ clearInactivityTimers(); clearSession(); showLogin(); }
+    },1000);
+  }, INACTIVITY_MS - WARN_MS);
+}
+
+function clearInactivityTimers(){
+  clearTimeout(_inactivityTimer); clearInterval(_countdownInterval);
+  _inactivityTimer=null; _countdownInterval=null;
+}
+
+function showInactivityWarn(){ document.getElementById('inactivity-warn').style.display='block'; }
+function hideInactivityWarn(){ document.getElementById('inactivity-warn').style.display='none'; }
+
+// Listen for any activity
+['click','keydown','scroll','mousemove'].forEach(evt=>
+  document.addEventListener(evt, ()=>{ if(getSession()) resetActivity(); }, {passive:true})
+);
+
+// ── User Management view ──────────────────────────────────────────────────────
+function renderUsers(){
+  if(!isAdmin()){ document.getElementById('content').innerHTML='<div class="empty"><div class="e-icon">🔒</div><h3>Access Denied</h3><p>Administrator access required.</p></div>'; return; }
+  const auth = getAuth();
+  document.getElementById('content').innerHTML = `
+  <div class="sec-title">User Management</div>
+  <div class="sec-sub">Manage portal access and reset passwords. Admin only.</div>
+  <div class="card" style="max-width:760px">
+    <div class="card-hd"><span class="card-title">Portal Users (${USERS.length})</span></div>
+    ${USERS.map(u=>`
+    <div class="user-row">
+      <div class="user-avatar">${u.name.split(' ').map(n=>n[0]).join('').slice(0,2)}</div>
+      <div class="user-info">
+        <div class="user-name">${u.name}</div>
+        <div class="user-email">${u.email}</div>
+      </div>
+      <span class="user-pill-role role-${u.role}" style="margin-right:8px">${u.role.charAt(0).toUpperCase()+u.role.slice(1)}</span>
+      <span class="badge ${auth[u.email]?'badge-green':'badge-amber'}" style="margin-right:10px">${auth[u.email]?'Password Set':'No Password'}</span>
+      <button class="btn btn-secondary btn-sm" onclick="adminResetPassword('${u.email}','${u.name}')">Reset Password</button>
+    </div>`).join('')}
+  </div>
+  <div class="card" style="max-width:760px;margin-top:16px">
+    <div class="card-hd"><span class="card-title">Role Permissions</span></div>
+    <table>
+      <thead><tr><th>Permission</th><th>Admin</th><th>Investigator</th><th>Viewer</th></tr></thead>
+      <tbody>
+        ${[['View all records','✓','✓','✓'],['Submit incident reports','✓','✓','✗'],['Create investigations','✓','✓','✗'],['Edit records','✓','✓','✗'],['Delete records','✓','✗','✗'],['Manage corrective actions','✓','✓','✗'],['Conduct inspections','✓','✓','✗'],['Reset user passwords','✓','✗','✗'],['User management panel','✓','✗','✗']].map(([p,a,i,v])=>`
+        <tr><td>${p}</td>
+          <td style="text-align:center;color:${a==='✓'?'var(--green)':'var(--red)'};font-weight:700">${a}</td>
+          <td style="text-align:center;color:${i==='✓'?'var(--green)':'var(--red)'};font-weight:700">${i}</td>
+          <td style="text-align:center;color:${v==='✓'?'var(--green)':'var(--red)'};font-weight:700">${v}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function adminResetPassword(email, name){
+  if(!isAdmin()) return;
+  showModal(`Reset Password — ${name}`,`
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px">Set a new password for <strong>${name}</strong> (${email}). Share it with them securely.</p>
+    <div class="fg" style="margin-bottom:12px"><label>New Password</label><input type="password" id="admin-pw1" placeholder="Min 6 chars, 2 uppercase" style="width:100%"></div>
+    <div class="fg"><label>Confirm Password</label><input type="password" id="admin-pw2" placeholder="Repeat password" style="width:100%"></div>
+    <div class="pw-rules" style="margin-top:8px">✓ Minimum 6 characters &nbsp; ✓ At least 2 uppercase letters</div>
+    <div id="admin-pw-err" style="color:var(--red);font-size:13px;font-weight:600;margin-top:8px;display:none"></div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="adminSavePassword('${email}')">Save Password</button>`
+  );
+}
+
+async function adminSavePassword(email){
+  const pw1 = document.getElementById('admin-pw1').value;
+  const pw2 = document.getElementById('admin-pw2').value;
+  const errEl = document.getElementById('admin-pw-err');
+  errEl.style.display='none';
+  const err = validatePw(pw1);
+  if(err){ errEl.textContent=err; errEl.style.display='block'; return; }
+  if(pw1!==pw2){ errEl.textContent='Passwords do not match.'; errEl.style.display='block'; return; }
+  const auth = getAuth();
+  auth[email] = await hashPw(email, pw1);
+  saveAuth(auth);
+  closeModal();
+  alert(`✓ Password updated for ${email}.`);
+  renderUsers();
+}
+
+// ── Role enforcement in render ────────────────────────────────────────────────
+const _origRender = render;
+function render(){
+  const s = getSession();
+  if(!s){ showLogin(); return; }
+
+  // Add users view
+  const views = {users: renderUsers};
+  const titles = {users:'User Management'};
+  if(currentView==='users'){ document.getElementById('page-title').textContent='User Management'; renderUsers(); return; }
+
+  // Role-gate topbar action buttons for viewers
+  _origRender();
+
+  // If viewer, inject read-only banner and suppress action buttons
+  if(!canEdit()){
+    document.getElementById('topbar-actions').innerHTML='';
+    const content = document.getElementById('content');
+    if(content && !content.querySelector('.ro-banner')){
+      const banner = document.createElement('div');
+      banner.className='ro-banner';
+      banner.innerHTML='👁 Read-Only Access — You may view all records but cannot create, edit, or delete.';
+      content.prepend(banner);
+    }
+  }
+}
+
 // ─── Init ──────────────────────────────────────────────────────────────────────
 updateBadge();
-render();
+if(getSession()){
+  hideLogin();
+  startInactivityTimer();
+  render();
+} else {
+  showLogin();
+}
 </script>
 </body>
 </html>
