@@ -1591,8 +1591,8 @@ function renderInvestigations(){
   </div>`;
 }
 
-function newInvestigation(){ openInvestigationForm(null); }
-function editInvestigation(id){ openInvestigationForm(investigations.find(x=>x.id===id)); }
+function newInvestigation(){ openInvestigationForm(null); initAllSigPads(); }
+function editInvestigation(id){ openInvestigationForm(investigations.find(x=>x.id===id)); initAllSigPads(); }
 
 function deleteInvestigation(id){
   if(!confirm('Delete this investigation? This cannot be undone.')) return;
@@ -1698,8 +1698,18 @@ function openInvestigationForm(inv){
       </div>
 
       <div class="form-grid" style="margin-top:8px">
-        ${field('Employee Signature', inp('empSignature','','Type full name as signature'))}
         ${field('Signature Date', inp('empSignDate','date'))}
+      </div>
+      <div style="margin-top:14px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Employee Digital Signature</label>
+        <div style="border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:#fff">
+          <canvas id="sig-emp" width="700" height="130" style="display:block;width:100%;touch-action:none;cursor:crosshair"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearSig('emp')">Clear Signature</button>
+          <span style="font-size:11px;color:var(--muted)">Draw your signature above using mouse or finger</span>
+        </div>
+        <input type="hidden" name="empSignature" id="empSignature-val">
       </div>
     </div>
 
@@ -1761,9 +1771,19 @@ function openInvestigationForm(inv){
       ${field('Recommended preventive action to prevent recurrence', txt('supPreventive','Describe specific corrective and preventive actions recommended…',3), true)}
 
       <div class="form-grid" style="margin-top:8px">
-        ${field('Supervisor Signature', inp('supSignature','','Type full name as signature'))}
         ${field('Signature Date', inp('supSignDate','date'))}
         ${field('Supervisor Title / Role', inp('supTitle',''))}
+      </div>
+      <div style="margin-top:14px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Supervisor Digital Signature</label>
+        <div style="border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:#fff">
+          <canvas id="sig-sup" width="700" height="130" style="display:block;width:100%;touch-action:none;cursor:crosshair"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearSig('sup')">Clear Signature</button>
+          <span style="font-size:11px;color:var(--muted)">Draw your signature above using mouse or finger</span>
+        </div>
+        <input type="hidden" name="supSignature" id="supSignature-val">
       </div>
     </div>
 
@@ -1906,6 +1926,17 @@ function openInvestigationForm(inv){
         ${field('Reviewer Title', inp('reviewerTitle',''))}
         ${field('Review Date', inp('reviewDate','date'))}
       </div>
+      <div style="margin-top:14px">
+        <label style="font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Reviewer Digital Signature</label>
+        <div style="border:1.5px solid var(--border);border-radius:8px;overflow:hidden;background:#fff">
+          <canvas id="sig-rev" width="700" height="130" style="display:block;width:100%;touch-action:none;cursor:crosshair"></canvas>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:6px;align-items:center">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="clearSig('rev')">Clear Signature</button>
+          <span style="font-size:11px;color:var(--muted)">Draw your signature above using mouse or finger</span>
+        </div>
+        <input type="hidden" name="reviewerSignature" id="revSignature-val">
+      </div>
 
     </div><!-- end Part 3 card -->
 
@@ -1977,6 +2008,9 @@ function saveInvestigation(id, status){
     writtenTitle: get('writtenTitle'), writtenDate: get('writtenDate'),
     teamMembers: get('teamMembers'), reviewedBy: get('reviewedBy'),
     reviewerTitle: get('reviewerTitle'), reviewDate: get('reviewDate'),
+    empSignature: get('empSignature'),
+    supSignature: get('supSignature'),
+    reviewerSignature: get('reviewerSignature'),
     savedAt: new Date().toISOString(),
     attachments: _attStore.inv.filter(Boolean)
   };
@@ -2342,6 +2376,67 @@ function render(){
     }
   }
 }
+
+// ── Signature pad engine ──────────────────────────────────────────────────────
+const _sigPads = {};
+
+function initSigPad(id){
+  const canvas = document.getElementById('sig-' + id);
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  // scale for device pixel ratio so lines are crisp
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width  = rect.width  * dpr;
+  canvas.height = 130 * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+
+  let drawing = false, lastX = 0, lastY = 0;
+
+  function pos(e){
+    const r = canvas.getBoundingClientRect();
+    const src = e.touches ? e.touches[0] : e;
+    return [(src.clientX - r.left), (src.clientY - r.top)];
+  }
+  function start(e){ e.preventDefault(); drawing=true; [lastX,lastY]=pos(e); }
+  function move(e){
+    if(!drawing) return; e.preventDefault();
+    const [x,y]=pos(e);
+    ctx.beginPath(); ctx.moveTo(lastX,lastY); ctx.lineTo(x,y); ctx.stroke();
+    [lastX,lastY]=[x,y];
+    // copy data URI into hidden input
+    const inp = document.getElementById(id+'Signature-val') || document.getElementById('revSignature-val');
+    if(inp) inp.value = canvas.toDataURL();
+  }
+  function stop(){ drawing=false; }
+
+  canvas.addEventListener('mousedown',  start);
+  canvas.addEventListener('mousemove',  move);
+  canvas.addEventListener('mouseup',    stop);
+  canvas.addEventListener('mouseleave', stop);
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove',  move,  {passive:false});
+  canvas.addEventListener('touchend',   stop);
+
+  _sigPads[id] = { canvas, ctx, dpr };
+}
+
+function clearSig(id){
+  const pad = _sigPads[id]; if(!pad) return;
+  pad.ctx.clearRect(0, 0, pad.canvas.width, pad.canvas.height);
+  const inp = document.getElementById(id+'Signature-val') || document.getElementById('revSignature-val');
+  if(inp) inp.value = '';
+}
+
+function initAllSigPads(){
+  // defer so canvas is in DOM and has layout dimensions
+  setTimeout(()=>{ ['emp','sup','rev'].forEach(initSigPad); }, 80);
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // ─── Seed default passwords (runs once; skips if already set) ─────────────────
 (function seedPasswords(){
