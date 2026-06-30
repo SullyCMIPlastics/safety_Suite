@@ -876,32 +876,78 @@ function filterIncidents(){
 function viewIncident(id){
   const i = incidents.find(x=>x.id===id); if(!i) return;
   const cas = corrective.filter(c=>c.incidentId===id);
-  const sevMap={critical:'badge-red',serious:'badge-orange',minor:'badge-blue',nearmiss:'badge-green'};
+  const editable = canEdit();
+  const ro = !editable;
+  const inp = (name,val,type='text',extra='')=> `<input type="${type}" name="${name}" value="${(val||'').toString().replace(/"/g,'&quot;')}" ${ro?'readonly':''} ${extra} style="${ro?'background:var(--bg)':''}">`;
+  const sel = (name,opts,val)=> ro
+    ? `<input readonly value="${val||''}" style="background:var(--bg)">`
+    : `<select name="${name}">${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;
+  const ta = (name,val,rows=3)=> `<textarea name="${name}" rows="${rows}" ${ro?'readonly':''} style="${ro?'background:var(--bg)':'';resize:vertical}">${val||''}</textarea>`;
+
+  const depts=['Production','Warehouse','Quality','Tool Room','Engineering','Office','Facilities Maintenance','Vendor','Supplier','Guest'];
+  const types=['Accident','Injury','Near Miss','First Aid','Property Damage','Other'];
+  const sevs=['Near Miss','Injury','Illness','Damage','Potential Injury'];
+  const statuses=['Open','Under Review','Closed'];
+
   showModal(`Incident Report — ${i.id}`,`
-    <div class="pill-row">
-      <span class="badge ${sevMap[i.severity]||'badge-grey'}">${capitalize(i.severity)}</span>
-      <span class="${badgeCls(i.status)}">${i.status}</span>
-      ${i.osha?'<span class="badge badge-red">OSHA Recordable</span>':''}
-    </div>
-    <div class="osha-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
-      ${[['Date',fmtDate(i.date)],['Time',i.time||'—'],['Type',i.type],['Department',i.dept],['Location',i.location],['Reported By',i.reportedBy],['Injured Person',i.injuredName||'None'],['Lost Days',i.lostDays],['Witnesses',i.witnesses||'None']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${v}</p></div>`).join('')}
-    </div>
-    <div class="divider"></div>
-    <div style="margin-bottom:12px"><div class="osha-stitle">Description</div><p style="font-size:13px;line-height:1.6;color:var(--text)">${i.description}</p></div>
-    <div style="margin-bottom:12px"><div class="osha-stitle">Immediate Action Taken</div><p style="font-size:13px;line-height:1.6">${i.immediate}</p></div>
-    ${i.treatment?`<div style="margin-bottom:12px"><div class="osha-stitle">Medical Treatment</div><p style="font-size:13px">${i.treatment}</p></div>`:''}
-    ${i.rootCause?`<div style="margin-bottom:12px"><div class="osha-stitle">Root Cause</div><p style="font-size:13px;line-height:1.6">${i.rootCause}</p></div>`:''}
-    ${cas.length?`<div class="divider"></div><div class="osha-stitle">Corrective Actions (${cas.length})</div>${cas.map(c=>`<div style="font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)"><strong>${c.id}</strong> — ${c.desc}<br><span style="color:var(--text-muted);font-size:11px">${c.assignedTo} · Due ${fmtDate(c.due)} · <span class="${badgeCls(c.status)}">${c.status}</span></span></div>`).join('')}`:''}
-  `,`<button class="btn btn-secondary" onclick="closeModal()">Close</button>
-     <button class="btn btn-primary" onclick="closeModal();nav('osha')">View OSHA Form</button>`);
+    <form id="edit-inc-form" style="display:flex;flex-direction:column;gap:16px">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div class="fg"><label>Date</label>${inp('date',i.date,'date')}</div>
+        <div class="fg"><label>Time</label>${inp('time',i.time,'time')}</div>
+        <div class="fg"><label>Status</label>${sel('status',statuses,i.status)}</div>
+        <div class="fg"><label>Incident Type</label>${sel('type',types,i.type)}</div>
+        <div class="fg"><label>Severity</label>${sel('severity',sevs,i.severity)}</div>
+        <div class="fg"><label>OSHA Recordable</label>${sel('osha',['No — Not Recordable','Yes — OSHA 300 Required'],i.osha?'Yes — OSHA 300 Required':'No — Not Recordable')}</div>
+        <div class="fg"><label>Department</label>${sel('dept',depts,i.dept)}</div>
+        <div class="fg"><label>Location</label>${inp('location',i.location)}</div>
+        <div class="fg"><label>Reported By</label>${inp('reportedBy',i.reportedBy)}</div>
+        <div class="fg"><label>Injured Person(s)</label>${inp('injuredName',i.injuredName)}</div>
+        <div class="fg"><label>Lost Days</label>${inp('lostDays',i.lostDays,'number','min="0"')}</div>
+        <div class="fg"><label>Witnesses</label>${inp('witnesses',i.witnesses)}</div>
+      </div>
+      <div class="fg"><label>Description</label>${ta('description',i.description,4)}</div>
+      <div class="fg"><label>Immediate Action Taken</label>${ta('immediate',i.immediate,3)}</div>
+      <div class="fg"><label>Medical Treatment</label>${ta('treatment',i.treatment,2)}</div>
+      <div class="fg"><label>Root Cause</label>${ta('rootCause',i.rootCause,3)}</div>
+      ${cas.length?`<div class="divider"></div>
+        <div class="osha-stitle" style="margin-bottom:6px">Corrective Actions (${cas.length})</div>
+        ${cas.map(c=>`<div style="font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)">
+          <strong>${c.id}</strong> — ${c.desc}<br>
+          <span style="color:var(--muted);font-size:11px">${c.assignedTo} · Due ${fmtDate(c.due)} · <span class="${badgeCls(c.status)}">${c.status}</span></span>
+        </div>`).join('')}`:''}
+    </form>`,
+    editable
+      ? `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+         <button class="btn btn-secondary" onclick="closeModal();nav('osha')">View OSHA Form</button>
+         <button class="btn btn-primary" onclick="saveIncidentEdit('${id}')">Save Changes</button>`
+      : `<button class="btn btn-secondary" onclick="closeModal()">Close</button>
+         <button class="btn btn-primary" onclick="closeModal();nav('osha')">View OSHA Form</button>`
+  );
 }
 
-function changeStatus(id){
-  const i = incidents.find(x=>x.id===id); if(!i)return;
-  const newS = prompt(`Change status for ${id}\nCurrent: ${i.status}\n\nEnter new status:\n1. Open\n2. Under Review\n3. Closed\n\nType: Open, Under Review, or Closed`);
-  if(newS&&['Open','Under Review','Closed'].includes(newS)){
-    i.status=newS; save(); updateBadge(); filterIncidents();
-  }
+function saveIncidentEdit(id){
+  const i = incidents.find(x=>x.id===id); if(!i) return;
+  const form = document.getElementById('edit-inc-form');
+  const g = name => { const el=form.elements[name]; return el?el.value:''; };
+  i.date        = g('date');
+  i.time        = g('time');
+  i.status      = g('status');
+  i.type        = g('type');
+  i.severity    = g('severity');
+  i.osha        = g('osha').startsWith('Yes');
+  i.dept        = g('dept');
+  i.location    = g('location');
+  i.reportedBy  = g('reportedBy');
+  i.injuredName = g('injuredName');
+  i.lostDays    = parseInt(g('lostDays'))||0;
+  i.witnesses   = g('witnesses');
+  i.description = g('description');
+  i.immediate   = g('immediate');
+  i.treatment   = g('treatment');
+  i.rootCause   = g('rootCause');
+  save(); updateBadge(); filterIncidents(); closeModal();
+  // reopen to show updated record
+  viewIncident(id);
 }
 
 // ─── OSHA Reports ─────────────────────────────────────────────────────────────
