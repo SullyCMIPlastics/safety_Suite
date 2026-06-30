@@ -876,7 +876,7 @@ function filterIncidents(){
 function viewIncident(id){
   const i = incidents.find(x=>x.id===id); if(!i) return;
   const cas = corrective.filter(c=>c.incidentId===id);
-  const editable = canEdit();
+  const editable = canEdit() && i.status !== 'Closed';
   const ro = !editable;
   const inp = (name,val,type='text',extra='')=> `<input type="${type}" name="${name}" value="${(val||'').toString().replace(/"/g,'&quot;')}" ${ro?'readonly':''} ${extra} style="${ro?'background:var(--bg)':''}">`;
   const sel = (name,opts,val)=> ro
