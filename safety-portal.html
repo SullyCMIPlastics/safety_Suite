@@ -37,6 +37,13 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .btn-secondary:hover{background:var(--border)}
 .btn-danger{background:var(--red);color:#fff}
 .btn-sm{padding:5px 12px;font-size:12px}
+.dz-over{background:rgba(0,74,153,.07)!important;border-color:var(--navy)!important}
+.att-row{display:flex;align-items:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;padding:8px 12px;font-size:13px}
+.att-row .att-thumb{width:36px;height:36px;object-fit:cover;border-radius:4px;flex-shrink:0}
+.att-row .att-icon{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.att-row .att-name{flex:1;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att-row .att-size{color:var(--muted);font-size:11px;flex-shrink:0}
+.att-row .att-rm{background:none;border:none;cursor:pointer;color:var(--red);font-size:18px;line-height:1;padding:0 2px;flex-shrink:0}
 .btn-xs{padding:3px 9px;font-size:11px;font-weight:600}
 #content{flex:1;overflow-y:auto;padding:26px 28px}
 .card{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:20px}
@@ -659,6 +666,19 @@ function renderReport(){
           </select>
         </div>
       </div>
+      <!-- SECTION E — ATTACHMENTS -->
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--navy)">SECTION E — ATTACHMENTS</div>
+      <div style="margin-bottom:24px">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Attach photos, videos, or documents related to this incident. Accepted: images (JPG, PNG, GIF), videos (MP4, MOV), documents (PDF, DOC, DOCX). Max 50 MB per file.</p>
+        <div id="inc-drop-zone" onclick="document.getElementById('inc-file-input').click()" ondragover="event.preventDefault();this.classList.add('dz-over')" ondragleave="this.classList.remove('dz-over')" ondrop="incDropFiles(event)" style="border:2px dashed var(--border);border-radius:8px;padding:28px 20px;text-align:center;cursor:pointer;transition:background .15s">
+          <div style="font-size:28px;margin-bottom:6px">📎</div>
+          <div style="font-weight:700;color:var(--navy);margin-bottom:4px">Click to browse or drag & drop files here</div>
+          <div style="font-size:12px;color:var(--muted)">Photos · Videos · Documents</div>
+        </div>
+        <input type="file" id="inc-file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx" style="display:none" onchange="incAddFiles(this.files)">
+        <div id="inc-file-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+
       <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
         <button type="button" class="btn btn-secondary" onclick="nav('incidents')">Cancel</button>
         <button type="button" class="btn btn-secondary" onclick="printIncidentForm()">🖨 Print / Save as PDF</button>
@@ -674,6 +694,58 @@ function printIncidentForm(){
   window.print();
   document.title = prevTitle;
 }
+
+/* ── Attachment helpers ───────────────────────────────────────── */
+const _attStore = { inc: [], inv: [] };
+
+function _fmtSize(b){ return b<1048576 ? (b/1024).toFixed(0)+'KB' : (b/1048576).toFixed(1)+'MB'; }
+
+function _attIcon(type){
+  if(type.startsWith('image/')) return null; // use thumbnail
+  if(type.startsWith('video/')) return '🎥';
+  if(type==='application/pdf') return '📄';
+  return '📎';
+}
+
+function _renderAttRow(ns, file, dataUrl, idx){
+  const list = document.getElementById(`${ns}-file-list`);
+  const row = document.createElement('div');
+  row.className = 'att-row'; row.dataset.idx = idx;
+  const icon = _attIcon(file.type);
+  const preview = icon
+    ? `<div class="att-icon">${icon}</div>`
+    : `<img class="att-thumb" src="${dataUrl}">`;
+  row.innerHTML = `${preview}<span class="att-name">${file.name}</span><span class="att-size">${_fmtSize(file.size)}</span><button class="att-rm" type="button" onclick="_removeAtt('${ns}',${idx},this.closest('.att-row'))" title="Remove">×</button>`;
+  list.appendChild(row);
+}
+
+function _removeAtt(ns, idx, row){
+  _attStore[ns][idx] = null;
+  row.remove();
+}
+
+function _addFiles(ns, files){
+  const MAX = 50 * 1024 * 1024;
+  Array.from(files).forEach(file => {
+    if(file.size > MAX){ alert(`"${file.name}" exceeds 50 MB and was not added.`); return; }
+    const idx = _attStore[ns].length;
+    const reader = new FileReader();
+    reader.onload = e => {
+      _attStore[ns].push({ name: file.name, type: file.type, size: file.size, data: e.target.result });
+      _renderAttRow(ns, file, e.target.result, idx);
+    };
+    reader.readAsDataURL(file);
+  });
+  // reset input so same file can be re-added after removal
+  const input = document.getElementById(`${ns}-file-input`);
+  if(input) input.value = '';
+}
+
+function incAddFiles(files){ _addFiles('inc', files); }
+function incDropFiles(e){ e.preventDefault(); document.getElementById('inc-drop-zone').classList.remove('dz-over'); _addFiles('inc', e.dataTransfer.files); }
+function invAddFiles(files){ _addFiles('inv', files); }
+function invDropFiles(e){ e.preventDefault(); document.getElementById('inv-drop-zone').classList.remove('dz-over'); _addFiles('inv', e.dataTransfer.files); }
+/* ────────────────────────────────────────────────────────────── */
 
 function toggleMedical(){
   const val = document.querySelector('input[name="treatmentRendered"]:checked')?.value;
@@ -728,8 +800,9 @@ function submitIncident(e){
     description:get('description'), immediate:get('immediate'),
     treatment:get('treatment'), lostDays:parseInt(get('lostDays'))||0,
     rootCause:get('rootCause'), osha:get('osha')==='true',
-    status:'Open', photos:[]
+    status:'Open', attachments:_attStore.inc.filter(Boolean)
   };
+  _attStore.inc = [];
   incidents.unshift(inc);
   save();
   updateBadge();
@@ -1608,6 +1681,16 @@ function openInvestigationForm(inv){
       ${field('What caused the event?', txt('supCause','Root cause analysis — unsafe act, condition, equipment failure, procedure gap…',3), true)}
       ${field('Were safety regulations in place and used? If not, what was wrong?', txt('supSafetyRegs','Describe which regulations applied and whether they were followed…',2), true)}
 
+      <div style="font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin:18px 0 10px;padding-bottom:5px;border-bottom:2px solid var(--navy)">Event Attachments</div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:12px">Attach photos, videos, or documents related to this event (scene photos, witness statements, equipment records, etc.). Accepted: images, videos, PDFs. Max 50 MB per file.</p>
+      <div id="inv-drop-zone" onclick="document.getElementById('inv-file-input').click()" ondragover="event.preventDefault();this.classList.add('dz-over')" ondragleave="this.classList.remove('dz-over')" ondrop="invDropFiles(event)" style="border:2px dashed var(--border);border-radius:8px;padding:28px 20px;text-align:center;cursor:pointer;transition:background .15s">
+        <div style="font-size:28px;margin-bottom:6px">📎</div>
+        <div style="font-weight:700;color:var(--navy);margin-bottom:4px">Click to browse or drag & drop files here</div>
+        <div style="font-size:12px;color:var(--muted)">Photos · Videos · Documents</div>
+      </div>
+      <input type="file" id="inv-file-input" multiple accept="image/*,video/*,.pdf,.doc,.docx" style="display:none" onchange="invAddFiles(this.files)">
+      <div id="inv-file-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px"></div>
+
       ${sec('Medical / Hospital')}
       <div class="form-grid" style="margin-bottom:4px">
         ${field('Employee went to doctor / hospital?', sel('supWentToDoctor',['','Yes — Doctor Visit','Yes — Emergency Room','Yes — Urgent Care','No']))}
@@ -1835,8 +1918,10 @@ function saveInvestigation(id, status){
     writtenTitle: get('writtenTitle'), writtenDate: get('writtenDate'),
     teamMembers: get('teamMembers'), reviewedBy: get('reviewedBy'),
     reviewerTitle: get('reviewerTitle'), reviewDate: get('reviewDate'),
-    savedAt: new Date().toISOString()
+    savedAt: new Date().toISOString(),
+    attachments: _attStore.inv.filter(Boolean)
   };
+  _attStore.inv = [];
 
   const idx = investigations.findIndex(x=>x.id===id);
   if(idx>=0) investigations[idx]=inv; else investigations.unshift(inv);
