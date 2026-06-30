@@ -5,6 +5,14 @@ services:
     volumes:
       - cmms_data:/data
       - ./cmms.html:/app/static/index.html:ro
+      - ./training.html:/app/static/training.html:ro
+    environment:
+      - SMTP_HOST=smtp.office365.com
+      - SMTP_PORT=587
+      - SMTP_USER=cmms@cmiplastics.com
+      - SMTP_PASS=CHANGEME          # ← replace with the cmms mailbox password
+      - SMTP_FROM=CMI CMMS <cmms@cmiplastics.com>
+      - CMMS_URL=https://cmms.cmi
     labels:
       - 'traefik.enable=true'
       - 'traefik.http.routers.cmms.rule=Host(`cmms.cmi`)'

@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMI Safety Portal</title>
+<style>
+:root {
+  --navy:#0F2137; --navy-mid:#1A3350; --navy-light:#243D5E;
+  --amber:#F5A623; --amber-dark:#D4901E;
+  --bg:#EEF1F6; --surface:#FFFFFF; --border:#D4DAE4;
+  --text:#0F2137; --text-mid:#4A5568; --text-muted:#8896AB;
+  --green:#16A34A; --red:#DC2626; --orange:#EA580C; --blue:#2563EB;
+  --sidebar-w:248px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;height:100vh;overflow:hidden}
+#sidebar{width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.logo-wrap{padding:22px 20px 18px;border-bottom:1px solid rgba(255,255,255,.08)}
+.logo-co{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--amber);margin-bottom:2px}
+.logo-title{font-size:21px;font-weight:800;color:#fff;line-height:1.1}
+.logo-title span{color:var(--amber)}
+.nav-sect{padding:10px 0 2px}
+.nav-lbl{font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.3);padding:0 18px 5px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 18px;cursor:pointer;color:rgba(255,255,255,.6);font-size:13.5px;font-weight:500;border-left:3px solid transparent;transition:all .15s;user-select:none}
+.nav-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.nav-item.active{background:rgba(245,166,35,.13);color:var(--amber);border-left-color:var(--amber)}
+.nav-icon{font-size:15px;width:22px;text-align:center}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;min-width:18px;text-align:center}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 28px;gap:14px;flex-shrink:0}
+.topbar-title{font-size:17px;font-weight:800;color:var(--text);flex:1}
+.btn{padding:8px 18px;border-radius:6px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--amber);color:var(--navy)}
+.btn-primary:hover{background:var(--amber-dark)}
+.btn-secondary{background:var(--bg);color:var(--text-mid);border:1px solid var(--border)}
+.btn-secondary:hover{background:var(--border)}
+.btn-danger{background:var(--red);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-xs{padding:3px 9px;font-size:11px;font-weight:600}
+#content{flex:1;overflow-y:auto;padding:26px 28px}
+.card{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:20px}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.card-title{font-size:14px;font-weight:700;color:var(--text)}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px}
+.kpi{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:18px 20px}
+.kpi-val{font-size:34px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1}
+.kpi-lbl{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;margin-top:6px}
+.kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.kpi.red{border-left:4px solid var(--red)}
+.kpi.amber{border-left:4px solid var(--orange)}
+.kpi.green{border-left:4px solid var(--green)}
+.kpi.blue{border-left:4px solid var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 14px;background:var(--bg);color:var(--text-muted);font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;border-bottom:1px solid var(--border);font-variant-numeric:tabular-nums;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFBFD}
+.tbl-wrap{overflow-x:auto}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.02em;white-space:nowrap}
+.badge-red{background:#FEE2E2;color:#991B1B}
+.badge-amber{background:#FEF3C7;color:#92400E}
+.badge-green{background:#D1FAE5;color:#065F46}
+.badge-blue{background:#DBEAFE;color:#1E40AF}
+.badge-grey{background:#F3F4F6;color:#4B5563}
+.badge-purple{background:#EDE9FE;color:#5B21B6}
+.badge-orange{background:#FFEDD5;color:#9A3412}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.fg{display:flex;flex-direction:column;gap:5px}
+.fg.full{grid-column:1/-1}
+label{font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em}
+input:not([type=radio]):not([type=checkbox]),select,textarea{padding:9px 12px;border-radius:6px;border:1.5px solid var(--border);font-size:14px;font-family:inherit;color:var(--text);background:var(--surface);transition:border-color .15s;width:100%}
+input[type=radio],input[type=checkbox]{width:auto;padding:0}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--amber);box-shadow:0 0 0 3px rgba(245,166,35,.12)}
+textarea{resize:vertical;min-height:80px}
+.sec-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.sec-sub{font-size:13px;color:var(--text-muted);margin-bottom:22px}
+.filters{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.srch{flex:1;min-width:180px;padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-family:inherit;color:var(--text)}
+.srch:focus{outline:none;border-color:var(--amber)}
+.dash-row{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px}
+.act-item{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--border)}
+.act-item:last-child{border-bottom:none}
+.act-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.act-dot.red{background:var(--red)}
+.act-dot.amber{background:var(--orange)}
+.act-dot.green{background:var(--green)}
+.act-dot.blue{background:var(--blue)}
+.act-text{font-size:13px;font-weight:500}
+.act-meta{font-size:11px;color:var(--text-muted);margin-top:2px}
+.training-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.tr-card{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:18px;cursor:pointer;transition:all .15s}
+.tr-card:hover{border-color:var(--amber);transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.tr-icon{font-size:26px;margin-bottom:10px}
+.tr-title{font-size:14px;font-weight:700;margin-bottom:5px}
+.tr-desc{font-size:12px;color:var(--text-muted);line-height:1.5}
+.prog-item{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:16px 18px;display:flex;align-items:center;gap:14px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.prog-item:hover{border-color:var(--amber)}
+.prog-icon{font-size:22px;width:46px;height:46px;background:var(--bg);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.prog-info{flex:1}
+.prog-title{font-size:14px;font-weight:700;margin-bottom:2px}
+.prog-meta{font-size:12px;color:var(--text-muted)}
+.chk-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.chk-item:last-child{border-bottom:none}
+.chk-item input[type=checkbox]{width:15px;height:15px;margin-top:2px;accent-color:var(--amber);cursor:pointer;flex-shrink:0}
+.chk-lbl{flex:1;font-size:13.5px}
+.chk-na{font-size:11px;color:var(--text-muted);cursor:pointer}
+.modal-ov{position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal{background:var(--surface);border-radius:12px;max-width:720px;width:100%;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.modal-hd{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--surface);z-index:1}
+.modal-hd h3{font-size:16px;font-weight:800}
+.modal-body{padding:22px}
+.modal-ft{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end}
+.close-x{background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);line-height:1}
+.close-x:hover{color:var(--text)}
+.empty{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty .e-icon{font-size:38px;margin-bottom:10px}
+.empty h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:5px}
+.empty p{font-size:13px}
+.sev-bar{width:4px;border-radius:2px;align-self:stretch;flex-shrink:0}
+.sev-bar.critical{background:var(--red)}
+.sev-bar.serious{background:var(--orange)}
+.sev-bar.minor{background:var(--blue)}
+.sev-bar.nearmiss{background:var(--green)}
+.mini-bars{display:flex;align-items:flex-end;gap:3px;height:52px}
+.bar{flex:1;border-radius:3px 3px 0 0;background:var(--amber);min-height:3px;opacity:.8;transition:opacity .15s}
+.bar:hover{opacity:1}
+.bar.nm{background:var(--green)}
+.contact-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.con-card{background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:18px}
+.con-name{font-size:15px;font-weight:700;margin-bottom:4px}
+.con-role{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.con-row{display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:4px}
+.divider{height:1px;background:var(--border);margin:20px 0}
+.osha-hd{background:var(--navy);color:#fff;padding:14px 20px;border-radius:8px 8px 0 0}
+.osha-hd h2{font-size:15px;font-weight:800}
+.osha-hd p{font-size:11px;opacity:.7;margin-top:3px}
+.osha-sect{background:var(--surface);border:1px solid var(--border);border-top:none;padding:16px 20px}
+.osha-sect:last-child{border-radius:0 0 8px 8px}
+.osha-stitle{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--navy);margin-bottom:12px;padding-bottom:5px;border-bottom:2px solid var(--navy)}
+.osha-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+.osha-field label{font-size:10px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:3px}
+.osha-field p{font-size:13px;font-weight:500;padding:7px 10px;background:var(--bg);border-radius:5px;min-height:32px}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.tab-row{display:flex;gap:0;border-bottom:2px solid var(--border);margin-bottom:22px}
+.tab{padding:10px 18px;font-size:13px;font-weight:600;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;margin-bottom:-2px;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--amber);border-bottom-color:var(--amber)}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--text-muted)}
+@media(max-width:900px){.kpi-grid{grid-template-columns:repeat(2,1fr)}.dash-row{grid-template-columns:1fr}.training-grid{grid-template-columns:repeat(2,1fr)}.form-grid{grid-template-columns:1fr}}
+@media print{
+  #sidebar,#topbar,.btn,.filters,#topbar-actions{display:none!important}
+  #main{overflow:visible}
+  #content{overflow:visible;padding:8px}
+  body{background:#fff}
+  .card{border:none;padding:0;box-shadow:none}
+  input,select,textarea{border:1px solid #ccc!important;background:#fff!important}
+  .sec-title,.sec-sub{display:none}
+  .print-hide{display:none!important}
+  @page{margin:18mm 14mm;size:A4}
+}
+</style>
+</head>
+<body>
+
+<nav id="sidebar">
+  <div class="logo-wrap">
+    <div class="logo-co">CMI Plastics</div>
+    <div class="logo-title">Safety<span>Portal</span></div>
+  </div>
+  <div class="nav-sect">
+    <div class="nav-lbl">Overview</div>
+    <div class="nav-item active" onclick="nav('dashboard')"><span class="nav-icon">⊞</span> Dashboard</div>
+  </div>
+  <div class="nav-sect">
+    <div class="nav-lbl">Incidents</div>
+    <div class="nav-item" onclick="nav('report')"><span class="nav-icon">✚</span> Report Incident</div>
+    <div class="nav-item" onclick="nav('incidents')"><span class="nav-icon">☰</span> Incident Log <span class="nav-badge" id="badge-open">0</span></div>
+    <div class="nav-item" onclick="nav('osha')"><span class="nav-icon">📋</span> OSHA Reports</div>
+    <div class="nav-item" onclick="nav('corrective')"><span class="nav-icon">✓</span> Corrective Actions</div>
+  </div>
+  <div class="nav-sect">
+    <div class="nav-lbl">Programs</div>
+    <div class="nav-item" onclick="nav('inspections')"><span class="nav-icon">🔍</span> Inspections</div>
+    <div class="nav-item" onclick="nav('training')"><span class="nav-icon">🎓</span> Training Library</div>
+    <div class="nav-item" onclick="nav('programs')"><span class="nav-icon">📁</span> Safety Programs</div>
+  </div>
+  <div class="nav-sect">
+    <div class="nav-lbl">Resources</div>
+    <div class="nav-item" onclick="nav('contacts')"><span class="nav-icon">📞</span> Emergency Contacts</div>
+  </div>
+</nav>
+
+<div id="main">
+  <header id="topbar">
+    <div class="topbar-title" id="page-title">Dashboard</div>
+    <div id="topbar-actions"></div>
+  </header>
+  <div id="content"></div>
+</div>
+
+<script>
+// ─── Data layer ───────────────────────────────────────────────────────────────
+const STORE = {
+  get(k){ try{return JSON.parse(localStorage.getItem('cmi_'+k)||'null')}catch{return null} },
+  set(k,v){ localStorage.setItem('cmi_'+k, JSON.stringify(v)) }
+};
+
+let incidents = STORE.get('incidents') || [
+  {id:'INC-001',date:'2026-06-10',time:'08:30',type:'Near Miss',severity:'serious',dept:'Extrusion',location:'Line 3',description:'Operator slipped on hydraulic fluid leak near press #3. No injury sustained. Floor was wet from overnight maintenance that was not properly cleaned up.',injuredName:'',treatment:'',lostDays:0,witnesses:'Marcus D., Tonya R.',rootCause:'Inadequate post-maintenance housekeeping procedure',immediate:'Fluid cleaned, area barricaded. Maintenance notified.',status:'Open',reportedBy:'Jamal K.',osha:false,photos:[]},
+  {id:'INC-002',date:'2026-06-15',time:'13:45',type:'First Aid',severity:'minor',dept:'Assembly',location:'Packaging Area',description:'Employee sustained a 1-inch laceration on right index finger while using a box cutter. Bandaged on-site, returned to work.',injuredName:'Sandra M.',treatment:'First aid — bandage applied by safety coordinator.',lostDays:0,witnesses:'Donna L.',rootCause:'Box cutter used without cut-resistant gloves. PPE not enforced at station.',immediate:'Wound cleaned and bandaged. PPE requirement posted at station.',status:'Closed',reportedBy:'Tom H.',osha:false,photos:[]},
+  {id:'INC-003',date:'2026-06-18',time:'10:15',type:'Recordable Injury',severity:'serious',dept:'Maintenance',location:'Utility Room B',description:'Maintenance tech received an electrical shock while replacing a breaker panel cover with power not locked out. Transported to urgent care; released same day.',injuredName:'Darrell F.',treatment:'Urgent care — cardiac monitoring, cleared for return to duty.',lostDays:1,witnesses:'Pete J.',rootCause:'LOTO procedure not followed. Energy not verified de-energized before panel removal.',immediate:'Work stopped. LOTO training re-briefed to maintenance team.',status:'Under Review',reportedBy:'Darrell F.',osha:true,photos:[]},
+  {id:'INC-004',date:'2026-06-22',time:'07:00',type:'Near Miss',severity:'minor',dept:'Shipping',location:'Loading Dock 2',description:'Forklift operator noticed a pedestrian stepped into the forklift travel lane without checking. No contact made. Pedestrian was a new hire in week one.',injuredName:'',treatment:'',lostDays:0,witnesses:'Ray B.',rootCause:'New hire not yet trained on floor traffic zones.',immediate:'Pedestrian reminded of floor markings. Supervisor notified.',status:'Closed',reportedBy:'Carlos V.',osha:false,photos:[]},
+];
+
+let corrective = STORE.get('corrective') || [
+  {id:'CA-001',incidentId:'INC-001',desc:'Implement post-maintenance cleanup checklist for all fluid systems',assignedTo:'Maintenance Supervisor',due:'2026-07-05',priority:'High',status:'In Progress',notes:'Checklist drafted, pending approval.'},
+  {id:'CA-002',incidentId:'INC-001',desc:'Install absorbent mats under hydraulic press #3 permanently',assignedTo:'Facilities',due:'2026-07-10',priority:'Medium',status:'Open',notes:''},
+  {id:'CA-003',incidentId:'INC-002',desc:'Enforce cut-resistant glove policy in packaging — add to daily checklist',assignedTo:'Packaging Supervisor',due:'2026-06-28',priority:'High',status:'Closed',notes:'Policy posted and verified at station 6/28.'},
+  {id:'CA-004',incidentId:'INC-003',desc:'Conduct LOTO re-training for all maintenance personnel',assignedTo:'Safety Manager',due:'2026-06-30',priority:'Critical',status:'In Progress',notes:'Training scheduled 6/30 at 7am.'},
+  {id:'CA-005',incidentId:'INC-003',desc:'Audit all electrical panels for LOTO compliance',assignedTo:'Maintenance Lead',due:'2026-07-15',priority:'High',status:'Open',notes:''},
+  {id:'CA-006',incidentId:'INC-004',desc:'Complete new hire safety orientation — floor traffic & forklift zones',assignedTo:'HR / Safety',due:'2026-06-25',priority:'Medium',status:'Closed',notes:'Completed 6/25.'},
+];
+
+let inspections = STORE.get('inspections') || [
+  {id:'INSP-001',type:'Weekly Safety Walk',date:'2026-06-23',conductedBy:'Safety Manager',area:'Production Floor',status:'Completed',findings:2,items:[
+    {q:'All aisles and exits clear of obstructions?',a:'yes'},{q:'Emergency eyewash stations tested and functioning?',a:'yes'},
+    {q:'Fire extinguishers accessible and inspection tags current?',a:'no',note:'Ext. #4 tag expired — scheduled for service'},
+    {q:'All machine guards in place and secured?',a:'yes'},{q:'Spill kits stocked and accessible?',a:'yes'},
+    {q:'Proper PPE in use in all required zones?',a:'yes'},{q:'First aid kit stocked and accessible?',a:'yes'},
+    {q:'Forklift charging area free of combustibles?',a:'no',note:'Cardboard boxes stored too close — removed during inspection'},
+  ]},
+];
+
+let caIdCounter = corrective.length + 1;
+let incIdCounter = incidents.length + 1;
+let inspIdCounter = inspections.length + 1;
+
+function save(){ STORE.set('incidents',incidents); STORE.set('corrective',corrective); STORE.set('inspections',inspections); }
+
+// ─── Router ───────────────────────────────────────────────────────────────────
+let currentView = 'dashboard';
+function nav(view){
+  currentView = view;
+  document.querySelectorAll('.nav-item').forEach(el=>{
+    el.classList.toggle('active', el.getAttribute('onclick')===`nav('${view}')`);
+  });
+  updateBadge();
+  render();
+}
+function updateBadge(){
+  const open = incidents.filter(i=>i.status==='Open'||i.status==='Under Review').length;
+  document.getElementById('badge-open').textContent = open;
+  document.getElementById('badge-open').style.display = open ? 'inline' : 'none';
+}
+
+// ─── Render dispatcher ────────────────────────────────────────────────────────
+function render(){
+  const views = {dashboard:renderDashboard,report:renderReport,incidents:renderIncidents,
+    osha:renderOSHA,corrective:renderCorrective,inspections:renderInspections,
+    training:renderTraining,programs:renderPrograms,contacts:renderContacts};
+  const titles = {dashboard:'Dashboard',report:'Report an Incident',incidents:'Incident Log',
+    osha:'OSHA Reports',corrective:'Corrective Actions',inspections:'Inspections',
+    training:'Training Library',programs:'Safety Programs',contacts:'Emergency Contacts'};
+  document.getElementById('page-title').textContent = titles[currentView]||'';
+  const actions = {
+    incidents:`<button class="btn btn-primary btn-sm" onclick="nav('report')">✚ New Report</button>`,
+    corrective:`<button class="btn btn-primary btn-sm" onclick="openCAModal()">✚ Add Action</button>`,
+    inspections:`<button class="btn btn-primary btn-sm" onclick="newInspection()">✚ New Inspection</button>`,
+    training:`<button class="btn btn-primary btn-sm" onclick="addTraining()">✚ Add Material</button>`,
+  };
+  document.getElementById('topbar-actions').innerHTML = actions[currentView]||'';
+  (views[currentView]||renderDashboard)();
+}
+
+// ─── Dashboard ────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
+  const mtd = incidents.filter(i=>{ const d=new Date(i.date); return d.getMonth()===m&&d.getFullYear()===y; });
+  const nm = mtd.filter(i=>i.type==='Near Miss').length;
+  const rec = mtd.filter(i=>i.type==='Recordable Injury'||i.type==='Lost Time Injury').length;
+  const openCA = corrective.filter(c=>c.status==='Open'||c.status==='In Progress').length;
+  const overdue = corrective.filter(c=>c.status!=='Closed'&&new Date(c.due)<now).length;
+
+  // Monthly bars last 6 months
+  const months = [];
+  for(let i=5;i>=0;i--){
+    const d=new Date(y,m-i,1);
+    const mo=d.getMonth(); const yr=d.getFullYear();
+    const count=incidents.filter(x=>{const dd=new Date(x.date);return dd.getMonth()===mo&&dd.getFullYear()===yr;}).length;
+    months.push({label:d.toLocaleString('default',{month:'short'}),count,nm:incidents.filter(x=>{const dd=new Date(x.date);return dd.getMonth()===mo&&dd.getFullYear()===yr&&x.type==='Near Miss';}).length});
+  }
+  const maxCount = Math.max(...months.map(x=>x.count),1);
+
+  const recent = [...incidents].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const colorDot = {critical:'red',serious:'amber',minor:'blue',nearmiss:'green'};
+
+  document.getElementById('content').innerHTML = `
+  <div class="kpi-grid">
+    <div class="kpi red"><div class="kpi-val">${mtd.filter(i=>i.type!=='Near Miss').length}</div><div class="kpi-lbl">Incidents MTD</div><div class="kpi-sub">${rec} recordable</div></div>
+    <div class="kpi amber"><div class="kpi-val">${nm}</div><div class="kpi-lbl">Near Misses MTD</div><div class="kpi-sub">All reported</div></div>
+    <div class="kpi ${overdue?'red':'green'}"><div class="kpi-val">${openCA}</div><div class="kpi-lbl">Open Corrective Actions</div><div class="kpi-sub">${overdue} overdue</div></div>
+    <div class="kpi blue"><div class="kpi-val">${incidents.filter(i=>i.lostDays>0).reduce((a,b)=>a+b.lostDays,0)}</div><div class="kpi-lbl">Total Lost Days YTD</div><div class="kpi-sub">Days away from work</div></div>
+  </div>
+  <div class="dash-row">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Incident Activity — Last 6 Months</span><span style="font-size:11px;color:var(--text-muted)">■ Incidents &nbsp; ■ Near Miss</span></div>
+      <div style="display:flex;gap:12px;align-items:flex-end">
+        <div class="mini-bars" style="flex:1;height:70px">
+          ${months.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+            <div style="flex:1;display:flex;flex-direction:column-reverse;align-items:center;gap:2px;width:100%">
+              <div class="bar" style="width:100%;height:${m.count?Math.max(10,(m.count/maxCount)*58):3}px"></div>
+              ${m.nm?`<div class="bar nm" style="width:100%;height:${Math.max(5,(m.nm/maxCount)*30)}px"></div>`:''}
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);font-weight:600">${m.label}</div>
+          </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">By Severity</span></div>
+      ${['Critical','Serious','Minor','Near Miss'].map(s=>{
+        const cnt = s==='Near Miss' ? incidents.filter(i=>i.type==='Near Miss').length : incidents.filter(i=>i.severity===s.toLowerCase()).length;
+        const pct = incidents.length ? Math.round(cnt/incidents.length*100) : 0;
+        const col = {Critical:'var(--red)',Serious:'var(--orange)',Minor:'var(--blue)','Near Miss':'var(--green)'}[s];
+        return `<div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:4px">
+            <span>${s}</span><span style="color:var(--text-muted)">${cnt}</span>
+          </div>
+          <div style="height:6px;background:var(--bg);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${col};border-radius:3px;transition:width .4s"></div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>
+  <div class="dash-row">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Recent Activity</span><a style="font-size:12px;color:var(--amber);cursor:pointer;text-decoration:none;font-weight:600" onclick="nav('incidents')">View all →</a></div>
+      ${recent.map(i=>`<div class="act-item">
+        <div class="act-dot ${colorDot[i.severity]||'blue'}"></div>
+        <div>
+          <div class="act-text">${i.id} — ${i.type} · ${i.dept}</div>
+          <div class="act-meta">${fmtDate(i.date)} · ${i.location} · Reported by ${i.reportedBy} · <span class="${badgeCls(i.status)}">${i.status}</span></div>
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Open Corrective Actions</span><a style="font-size:12px;color:var(--amber);cursor:pointer;font-weight:600" onclick="nav('corrective')">View all →</a></div>
+      ${corrective.filter(c=>c.status!=='Closed').slice(0,5).map(c=>`<div class="act-item">
+        <div class="act-dot ${c.priority==='Critical'?'red':c.priority==='High'?'amber':'blue'}"></div>
+        <div>
+          <div class="act-text" style="font-size:12.5px">${c.desc.substring(0,55)}${c.desc.length>55?'…':''}</div>
+          <div class="act-meta">${c.assignedTo} · Due ${fmtDate(c.due)}</div>
+        </div>
+      </div>`).join('')||'<div class="act-item"><div class="act-dot green"></div><div><div class="act-text">All actions closed ✓</div></div></div>'}
+    </div>
+  </div>`;
+}
+
+// ─── Report Incident ──────────────────────────────────────────────────────────
+function renderReport(){
+  document.getElementById('content').innerHTML = `
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:6px">
+    <div>
+      <div class="sec-title">Report an Incident</div>
+      <div class="sec-sub" style="margin-bottom:0">Complete all fields accurately. Submit immediately after any incident or near miss.</div>
+    </div>
+    <button class="btn btn-secondary" onclick="printIncidentForm()" style="flex-shrink:0">🖨 Print / Save as PDF</button>
+  </div>
+  <div style="margin-bottom:20px"></div>
+  <div class="card" style="max-width:860px">
+    <form id="inc-form" onsubmit="submitIncident(event)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--navy)">SECTION A — INCIDENT CLASSIFICATION</div>
+      <div class="form-grid" style="margin-bottom:20px">
+        <div class="fg">
+          <label>Incident Type *</label>
+          <select name="type" required>
+            <option value="">Select type…</option>
+            <option>Accident</option>
+            <option>Injury</option>
+            <option>Near Miss</option>
+            <option>First Aid</option>
+            <option>Property Damage</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Severity *</label>
+          <select name="severity" required>
+            <option value="">Select severity…</option>
+            <option value="nearmiss">Near Miss</option>
+            <option value="injury">Injury</option>
+            <option value="illness">Illness</option>
+            <option value="damage">Damage</option>
+            <option value="potential">Potential Injury</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Date of Incident *</label>
+          <input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}">
+        </div>
+        <div class="fg">
+          <label>Time of Incident *</label>
+          <input type="time" name="time" required>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--navy)">SECTION B — LOCATION & PERSONNEL</div>
+      <div class="form-grid" style="margin-bottom:20px">
+        <div class="fg">
+          <label>Department *</label>
+          <select name="dept" required>
+            <option value="">Select department…</option>
+            <option>Production</option>
+            <option>Warehouse</option>
+            <option>Quality</option>
+            <option>Tool Room</option>
+            <option>Engineering</option>
+            <option>Office</option>
+            <option>Facilities Maintenance</option>
+            <option>Vendor</option>
+            <option>Supplier</option>
+            <option>Guest</option>
+          </select>
+        </div>
+        <div class="fg full">
+          <label>Specific Location *</label>
+          <textarea name="location" rows="3" placeholder="Describe the specific location in detail — e.g. Production Floor, Line 3, near press #3 station" required style="resize:vertical"></textarea>
+        </div>
+        <div class="fg">
+          <label>Reported By *</label>
+          <input type="text" name="reportedBy" placeholder="Your name" required>
+        </div>
+        <div class="fg full">
+          <label>Injured Person(s) <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— add a row for each injured person</span></label>
+          <div id="injured-list" style="display:flex;flex-direction:column;gap:6px">
+            <div class="injured-row" style="display:flex;gap:8px;align-items:center">
+              <input type="text" name="injuredName" placeholder="Full name (leave blank if no injury)" style="flex:1">
+              <button type="button" onclick="addInjured()" class="btn btn-secondary btn-sm" style="white-space:nowrap;flex-shrink:0">+ Add Person</button>
+            </div>
+          </div>
+        </div>
+        <div class="fg full">
+          <label>Witnesses <span style="font-weight:400;text-transform:none;letter-spacing:0;color:var(--text-muted)">— minimum 3 fields provided</span></label>
+          <div id="witness-list" style="display:flex;flex-direction:column;gap:6px">
+            <input type="text" name="witness" placeholder="Witness 1 — Full name">
+            <input type="text" name="witness" placeholder="Witness 2 — Full name">
+            <input type="text" name="witness" placeholder="Witness 3 — Full name">
+          </div>
+          <button type="button" onclick="addWitness()" class="btn btn-secondary btn-sm" style="margin-top:6px;align-self:flex-start">+ Add Witness</button>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--navy)">SECTION C — INCIDENT DESCRIPTION</div>
+      <div style="margin-bottom:20px;display:flex;flex-direction:column;gap:14px">
+        <div class="fg">
+          <label>Describe what happened *</label>
+          <textarea name="description" rows="4" placeholder="Describe the sequence of events in detail. Include what task was being performed, what went wrong, and what the outcome was." required></textarea>
+        </div>
+        <div class="fg">
+          <label>Immediate Action Taken *</label>
+          <textarea name="immediate" rows="3" placeholder="What was done immediately after the incident? Area secured, first aid given, supervisor notified, etc." required></textarea>
+        </div>
+        <div style="background:var(--bg);border-radius:8px;padding:16px;border:1px solid var(--border)">
+          <div class="fg" style="margin-bottom:14px">
+            <label>Was medical treatment rendered? *</label>
+            <div style="display:flex;gap:24px;margin-top:6px;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap">
+                <input type="radio" name="treatmentRendered" value="yes" onchange="toggleMedical()" required> Yes
+              </span>
+              <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap">
+                <input type="radio" name="treatmentRendered" value="no" onchange="toggleMedical()"> No — First Aid Only / None Required
+              </span>
+            </div>
+          </div>
+
+          <div id="medical-detail" style="display:none;border-top:1px solid var(--border);padding-top:14px;display:none;flex-direction:column;gap:14px">
+            <div class="fg">
+              <label>Were emergency services (911 / ambulance) contacted?</label>
+              <div style="display:flex;gap:24px;margin-top:6px;flex-wrap:wrap">
+                <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap">
+                  <input type="radio" name="emergencyContacted" value="yes" onchange="toggleTransport()"> Yes — Ambulance dispatched
+                </span>
+                <span style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap">
+                  <input type="radio" name="emergencyContacted" value="no" onchange="toggleTransport()"> No — Self / Company transport
+                </span>
+              </div>
+            </div>
+
+            <div id="transport-detail" style="display:none;flex-direction:column;gap:12px">
+              <div class="form-grid">
+                <div class="fg">
+                  <label>Facility Name</label>
+                  <input type="text" name="facilityName" placeholder="e.g. St. Mary's Hospital, CareNow Urgent Care">
+                </div>
+                <div class="fg">
+                  <label>Facility Type</label>
+                  <select name="facilityType">
+                    <option value="">Select…</option>
+                    <option>Emergency Room / Hospital</option>
+                    <option>Urgent Care Center</option>
+                    <option>Occupational Health Clinic</option>
+                    <option>Primary Care Physician</option>
+                    <option>On-Site Medical</option>
+                    <option>Other</option>
+                  </select>
+                </div>
+                <div class="fg full">
+                  <label>Facility Address</label>
+                  <input type="text" name="facilityAddress" placeholder="Street address, City, State, ZIP">
+                </div>
+                <div class="fg">
+                  <label>Facility Phone</label>
+                  <input type="tel" name="facilityPhone" placeholder="(000) 000-0000">
+                </div>
+                <div class="fg">
+                  <label>Date of Medical Visit</label>
+                  <input type="date" name="medVisitDate">
+                </div>
+                <div class="fg full">
+                  <label>Treating Physician / Provider Name</label>
+                  <input type="text" name="physicianName" placeholder="Doctor or provider name">
+                </div>
+                <div class="fg full">
+                  <label>Treatment / Diagnosis Description</label>
+                  <textarea name="treatment" rows="3" placeholder="Describe the treatment provided, diagnosis given, and any restrictions or follow-up required…"></textarea>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-grid">
+              <div class="fg">
+                <label>Lost Work Days</label>
+                <input type="number" name="lostDays" min="0" value="0" placeholder="0">
+              </div>
+              <div class="fg">
+                <label>Work Restrictions / Modified Duty?</label>
+                <select name="restrictions">
+                  <option value="none">No restrictions — full duty</option>
+                  <option value="modified">Modified / Light duty</option>
+                  <option value="restricted">Restricted — specific limitations</option>
+                  <option value="offwork">Off work entirely</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div id="no-treatment-note" style="display:none;margin-top:10px">
+            <div class="fg">
+              <label>First Aid Details (if any)</label>
+              <input type="text" name="treatment" placeholder="e.g. Bandage applied on-site, ice pack, none required">
+            </div>
+            <div class="fg" style="margin-top:12px">
+              <label>Lost Work Days</label>
+              <input type="number" name="lostDays" min="0" value="0" style="max-width:120px">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--navy);margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid var(--navy)">SECTION D — CAUSE ANALYSIS</div>
+      <div style="margin-bottom:24px;display:flex;flex-direction:column;gap:14px">
+        <div class="fg">
+          <label>Immediate / Root Cause</label>
+          <textarea name="rootCause" rows="3" placeholder="What directly caused the incident? Consider: unsafe act, unsafe condition, equipment failure, training gap, procedure not followed…"></textarea>
+        </div>
+        <div class="fg">
+          <label>OSHA Recordable?</label>
+          <select name="osha">
+            <option value="false">No — Not OSHA Recordable</option>
+            <option value="true">Yes — OSHA 300 Log Required</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap">
+        <button type="button" class="btn btn-secondary" onclick="nav('incidents')">Cancel</button>
+        <button type="button" class="btn btn-secondary" onclick="printIncidentForm()">🖨 Print / Save as PDF</button>
+        <button type="submit" class="btn btn-primary">Submit Incident Report</button>
+      </div>
+    </form>
+  </div>`;
+}
+
+function printIncidentForm(){
+  const prevTitle = document.title;
+  document.title = 'CMI Plastics — Incident Report';
+  window.print();
+  document.title = prevTitle;
+}
+
+function toggleMedical(){
+  const val = document.querySelector('input[name="treatmentRendered"]:checked')?.value;
+  const detail = document.getElementById('medical-detail');
+  const noNote = document.getElementById('no-treatment-note');
+  if(val==='yes'){
+    detail.style.display='flex';
+    noNote.style.display='none';
+  } else if(val==='no'){
+    detail.style.display='none';
+    noNote.style.display='block';
+  }
+}
+
+function toggleTransport(){
+  const val = document.querySelector('input[name="emergencyContacted"]:checked')?.value;
+  const td = document.getElementById('transport-detail');
+  td.style.display = val ? 'flex' : 'none';
+}
+
+function addInjured(){
+  const list = document.getElementById('injured-list');
+  const count = list.querySelectorAll('.injured-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'injured-row';
+  row.style.cssText = 'display:flex;gap:8px;align-items:center';
+  row.innerHTML = `<input type="text" name="injuredName" placeholder="Full name" style="flex:1">
+    <button type="button" onclick="this.parentElement.remove()" class="btn btn-danger btn-sm" style="flex-shrink:0">Remove</button>`;
+  list.appendChild(row);
+}
+
+function addWitness(){
+  const list = document.getElementById('witness-list');
+  const count = list.querySelectorAll('input').length + 1;
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.name = 'witness';
+  inp.placeholder = `Witness ${count} — Full name`;
+  list.appendChild(inp);
+}
+
+function submitIncident(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const get = k => f.get(k)||'';
+  const id = 'INC-' + String(incIdCounter++).padStart(3,'0');
+  const injuredNames = [...e.target.querySelectorAll('input[name="injuredName"]')].map(i=>i.value).filter(Boolean).join('; ');
+  const witnesses = [...e.target.querySelectorAll('input[name="witness"]')].map(i=>i.value).filter(Boolean).join(', ');
+  const inc = {
+    id, date:get('date'), time:get('time'), type:get('type'), severity:get('severity'),
+    dept:get('dept'), location:get('location'), reportedBy:get('reportedBy'),
+    injuredName:injuredNames, witnesses:witnesses,
+    description:get('description'), immediate:get('immediate'),
+    treatment:get('treatment'), lostDays:parseInt(get('lostDays'))||0,
+    rootCause:get('rootCause'), osha:get('osha')==='true',
+    status:'Open', photos:[]
+  };
+  incidents.unshift(inc);
+  save();
+  updateBadge();
+  alert(`✓ Incident ${id} submitted successfully.\n\nYou will be directed to the Incident Log.`);
+  nav('incidents');
+}
+
+// ─── Incident Log ─────────────────────────────────────────────────────────────
+function renderIncidents(){
+  document.getElementById('content').innerHTML = `
+  <div class="filters">
+    <input class="srch" id="inc-search" placeholder="Search incidents…" oninput="filterIncidents()">
+    <select id="inc-type-filter" onchange="filterIncidents()" style="width:auto;padding:8px 12px;font-size:13px">
+      <option value="">All Types</option>
+      <option>Near Miss</option><option>First Aid</option><option>Recordable Injury</option><option>Lost Time Injury</option><option>Property Damage</option>
+    </select>
+    <select id="inc-status-filter" onchange="filterIncidents()" style="width:auto;padding:8px 12px;font-size:13px">
+      <option value="">All Statuses</option>
+      <option>Open</option><option>Under Review</option><option>Closed</option>
+    </select>
+    <select id="inc-dept-filter" onchange="filterIncidents()" style="width:auto;padding:8px 12px;font-size:13px">
+      <option value="">All Depts</option>
+      <option>Extrusion</option><option>Assembly</option><option>Maintenance</option><option>Shipping</option><option>Quality</option><option>Warehouse</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table id="inc-table">
+        <thead><tr>
+          <th>ID</th><th>Date</th><th>Type</th><th>Severity</th><th>Department</th><th>Location</th><th>Reported By</th><th>OSHA</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="inc-tbody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  filterIncidents();
+}
+
+function filterIncidents(){
+  const q=(document.getElementById('inc-search').value||'').toLowerCase();
+  const t=document.getElementById('inc-type-filter').value;
+  const s=document.getElementById('inc-status-filter').value;
+  const d=document.getElementById('inc-dept-filter').value;
+  const filtered = incidents.filter(i=>{
+    if(t&&i.type!==t)return false;
+    if(s&&i.status!==s)return false;
+    if(d&&i.dept!==d)return false;
+    if(q&&!(i.id+i.dept+i.location+i.type+i.reportedBy+i.description).toLowerCase().includes(q))return false;
+    return true;
+  });
+  const sevMap={critical:'badge-red',serious:'badge-orange',minor:'badge-blue',nearmiss:'badge-green'};
+  document.getElementById('inc-tbody').innerHTML = filtered.length ? filtered.map(i=>`
+    <tr>
+      <td><strong>${i.id}</strong></td>
+      <td style="white-space:nowrap">${fmtDate(i.date)}</td>
+      <td>${i.type}</td>
+      <td><span class="badge ${sevMap[i.severity]||'badge-grey'}">${capitalize(i.severity)}</span></td>
+      <td>${i.dept}</td>
+      <td>${i.location}</td>
+      <td>${i.reportedBy}</td>
+      <td>${i.osha?'<span class="badge badge-red">Yes</span>':'<span class="badge badge-grey">No</span>'}</td>
+      <td><span class="${badgeCls(i.status)}">${i.status}</span></td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-secondary btn-xs" onclick='viewIncident("${i.id}")'>View</button>
+        <button class="btn btn-secondary btn-xs" onclick='changeStatus("${i.id}")'>Status</button>
+      </td>
+    </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--text-muted)">No incidents match the current filters.</td></tr>';
+}
+
+function viewIncident(id){
+  const i = incidents.find(x=>x.id===id); if(!i) return;
+  const cas = corrective.filter(c=>c.incidentId===id);
+  const sevMap={critical:'badge-red',serious:'badge-orange',minor:'badge-blue',nearmiss:'badge-green'};
+  showModal(`Incident Report — ${i.id}`,`
+    <div class="pill-row">
+      <span class="badge ${sevMap[i.severity]||'badge-grey'}">${capitalize(i.severity)}</span>
+      <span class="${badgeCls(i.status)}">${i.status}</span>
+      ${i.osha?'<span class="badge badge-red">OSHA Recordable</span>':''}
+    </div>
+    <div class="osha-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:16px">
+      ${[['Date',fmtDate(i.date)],['Time',i.time||'—'],['Type',i.type],['Department',i.dept],['Location',i.location],['Reported By',i.reportedBy],['Injured Person',i.injuredName||'None'],['Lost Days',i.lostDays],['Witnesses',i.witnesses||'None']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${v}</p></div>`).join('')}
+    </div>
+    <div class="divider"></div>
+    <div style="margin-bottom:12px"><div class="osha-stitle">Description</div><p style="font-size:13px;line-height:1.6;color:var(--text)">${i.description}</p></div>
+    <div style="margin-bottom:12px"><div class="osha-stitle">Immediate Action Taken</div><p style="font-size:13px;line-height:1.6">${i.immediate}</p></div>
+    ${i.treatment?`<div style="margin-bottom:12px"><div class="osha-stitle">Medical Treatment</div><p style="font-size:13px">${i.treatment}</p></div>`:''}
+    ${i.rootCause?`<div style="margin-bottom:12px"><div class="osha-stitle">Root Cause</div><p style="font-size:13px;line-height:1.6">${i.rootCause}</p></div>`:''}
+    ${cas.length?`<div class="divider"></div><div class="osha-stitle">Corrective Actions (${cas.length})</div>${cas.map(c=>`<div style="font-size:13px;padding:8px 0;border-bottom:1px solid var(--border)"><strong>${c.id}</strong> — ${c.desc}<br><span style="color:var(--text-muted);font-size:11px">${c.assignedTo} · Due ${fmtDate(c.due)} · <span class="${badgeCls(c.status)}">${c.status}</span></span></div>`).join('')}`:''}
+  `,`<button class="btn btn-secondary" onclick="closeModal()">Close</button>
+     <button class="btn btn-primary" onclick="closeModal();nav('osha')">View OSHA Form</button>`);
+}
+
+function changeStatus(id){
+  const i = incidents.find(x=>x.id===id); if(!i)return;
+  const newS = prompt(`Change status for ${id}\nCurrent: ${i.status}\n\nEnter new status:\n1. Open\n2. Under Review\n3. Closed\n\nType: Open, Under Review, or Closed`);
+  if(newS&&['Open','Under Review','Closed'].includes(newS)){
+    i.status=newS; save(); updateBadge(); filterIncidents();
+  }
+}
+
+// ─── OSHA Reports ─────────────────────────────────────────────────────────────
+function renderOSHA(){
+  const tabs = ['OSHA 300 Log','OSHA 300A Summary','OSHA 301 — Individual Report'];
+  let activeTab = 0;
+  const el = document.getElementById('content');
+  el.innerHTML = `
+  <div class="tab-row">
+    ${tabs.map((t,i)=>`<div class="tab ${i===0?'active':''}" onclick="oshaTab(${i})" id="osha-tab-${i}">${t}</div>`).join('')}
+  </div>
+  <div id="osha-content"></div>`;
+  renderOSHA300();
+}
+
+function oshaTab(i){
+  document.querySelectorAll('.tab').forEach((t,j)=>t.classList.toggle('active',j===i));
+  [renderOSHA300, renderOSHA300A, renderOSHA301][i]();
+}
+
+function renderOSHA300(){
+  const rec = incidents.filter(i=>i.osha||i.type==='Recordable Injury'||i.type==='Lost Time Injury');
+  document.getElementById('osha-content').innerHTML = `
+  <div class="osha-hd"><h2>OSHA Form 300 — Log of Work-Related Injuries and Illnesses</h2><p>Year: ${new Date().getFullYear()} &nbsp;|&nbsp; Establishment: CMI Plastics &nbsp;|&nbsp; Injury and Illness Types as defined by 29 CFR 1904</p></div>
+  <div class="osha-sect">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr>
+          <th>(A) Case #</th><th>(B) Employee Name</th><th>(C) Job Title</th>
+          <th>(D) Date of Injury</th><th>(E) Where Event Occurred</th>
+          <th>(F) Describe Injury / Illness</th>
+          <th>Death</th><th>Days Away</th><th>Restricted / Transfer</th><th>Other Recordable</th>
+          <th>(K) Days Away</th><th>(L) Days Restricted</th>
+          <th>Injury</th><th>Skin Dis.</th><th>Resp. Cond.</th><th>Poisoning</th><th>Hearing Loss</th><th>All Other</th>
+        </tr></thead>
+        <tbody>
+        ${rec.length ? rec.map((i,idx)=>`<tr>
+          <td>${i.id}</td>
+          <td>${i.injuredName||'—'}</td>
+          <td>${i.dept} Employee</td>
+          <td style="white-space:nowrap">${fmtDate(i.date)}</td>
+          <td>${i.location}</td>
+          <td style="max-width:200px;font-size:11px">${i.description.substring(0,80)}…</td>
+          <td style="text-align:center">${i.type==='Fatal'?'✓':''}</td>
+          <td style="text-align:center">${i.lostDays>0?'✓':''}</td>
+          <td style="text-align:center"></td>
+          <td style="text-align:center">${i.type==='Recordable Injury'?'✓':''}</td>
+          <td style="text-align:center;font-variant-numeric:tabular-nums">${i.lostDays||''}</td>
+          <td style="text-align:center"></td>
+          <td style="text-align:center">✓</td>
+          <td></td><td></td><td></td><td></td><td></td>
+        </tr>`).join('') : '<tr><td colspan="18" style="text-align:center;padding:24px;color:var(--text-muted)">No OSHA recordable incidents recorded this year.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="osha-sect" style="border-radius:0 0 8px 8px">
+    <div style="display:flex;gap:24px;font-size:13px">
+      <div><strong>Total Deaths:</strong> 0</div>
+      <div><strong>Total Days Away:</strong> ${rec.reduce((a,b)=>a+(b.lostDays||0),0)}</div>
+      <div><strong>Total Recordable Cases:</strong> ${rec.length}</div>
+      <div style="margin-left:auto"><button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print / Export PDF</button></div>
+    </div>
+  </div>`;
+}
+
+function renderOSHA300A(){
+  const rec = incidents.filter(i=>i.osha||i.type==='Recordable Injury'||i.type==='Lost Time Injury');
+  const totalH = 250000;
+  const rate = rec.length ? ((rec.length/totalH)*200000).toFixed(2) : '0.00';
+  document.getElementById('osha-content').innerHTML = `
+  <div class="osha-hd"><h2>OSHA Form 300A — Summary of Work-Related Injuries and Illnesses</h2><p>Year: ${new Date().getFullYear()} — Post from February 1 through April 30 each year</p></div>
+  <div class="osha-sect">
+    <div class="osha-stitle">Establishment Information</div>
+    <div class="osha-grid">
+      ${[['Company Name','CMI Plastics'],['Street Address',''],['City / State / Zip',''],['Industry Description','Plastics Manufacturing'],['NAICS Code','326199'],['Annual Average Employees',''],['Total Hours Worked','250,000']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${v||'&nbsp;'}</p></div>`).join('')}
+    </div>
+    <div class="divider"></div>
+    <div class="osha-stitle">Injury & Illness Totals for the Year</div>
+    <div class="osha-grid" style="grid-template-columns:repeat(4,1fr)">
+      ${[['(G) Deaths','0'],['(H) Days Away from Work Cases',rec.filter(i=>i.lostDays>0).length],['(I) Restricted / Transfer Cases','0'],['(J) Other Recordable Cases',rec.filter(i=>!i.lostDays).length],['(K) Total Days Away',rec.reduce((a,b)=>a+(b.lostDays||0),0)],['(L) Total Days Restricted','0'],['(M1) Injuries',rec.length],['(M2) Skin Disorders','0'],['(M3) Respiratory','0'],['(M4) Poisonings','0'],['(M5) Hearing Loss','0'],['(M6) All Other','0']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${v}</p></div>`).join('')}
+    </div>
+    <div class="divider"></div>
+    <div class="osha-stitle">Incidence Rates</div>
+    <div class="osha-grid">
+      <div class="osha-field"><label>Total Recordable Case Rate</label><p>${rate}</p></div>
+      <div class="osha-field"><label>Days Away Rate</label><p>${rec.filter(i=>i.lostDays>0).length ? ((rec.filter(i=>i.lostDays>0).length/totalH)*200000).toFixed(2) : '0.00'}</p></div>
+      <div class="osha-field"><label>Formula Used</label><p>(N / EH) × 200,000</p></div>
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text-muted);font-style:italic">Knowingly falsifying this document may result in a fine. Certification required by a company executive by February 1.</div>
+  </div>`;
+}
+
+function renderOSHA301(){
+  const rec = incidents.filter(i=>i.type==='Recordable Injury'||i.type==='Lost Time Injury'||i.osha);
+  const sel = rec.length ? rec[0] : null;
+  document.getElementById('osha-content').innerHTML = `
+  <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+    <select id="osha301-sel" onchange="load301()" style="width:auto;padding:8px 12px;font-size:13px">
+      ${rec.map(i=>`<option value="${i.id}">${i.id} — ${i.type} — ${fmtDate(i.date)}</option>`).join('')||'<option>No recordable incidents</option>'}
+    </select>
+    <button class="btn btn-secondary btn-sm" onclick="window.print()">🖨 Print</button>
+  </div>
+  <div id="osha301-body"></div>`;
+  if(sel) load301();
+}
+
+function load301(){
+  const id = document.getElementById('osha301-sel')?.value;
+  const i = incidents.find(x=>x.id===id);
+  if(!i){ document.getElementById('osha301-body').innerHTML=''; return; }
+  document.getElementById('osha301-body').innerHTML = `
+  <div class="osha-hd"><h2>OSHA Form 301 — Injury and Illness Incident Report</h2><p>Case # ${i.id} &nbsp;|&nbsp; All fields required for OSHA 300 log recordable cases</p></div>
+  <div class="osha-sect">
+    <div class="osha-stitle">Section 1 — Information About the Employee</div>
+    <div class="osha-grid">
+      ${[['Full Name',i.injuredName||'—'],['Job Title',i.dept+' Employee'],['Department',i.dept],['Date of Birth',''],['Date First Employed',''],['Gender','']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${v||'&nbsp;'}</p></div>`).join('')}
+    </div>
+  </div>
+  <div class="osha-sect">
+    <div class="osha-stitle">Section 2 — Information About the Physician / Health Care Provider</div>
+    <div class="osha-grid">
+      ${[['Name of Physician / HCP',''],['Facility Name',''],['Street Address',''],['City / State / Zip',''],['Phone',''],['Emergency Room?','']].map(([l,v])=>`<div class="osha-field"><label>${l}</label><p>${i.treatment||'&nbsp;'}</p></div>`).join('').replace(/(&nbsp;){5}/,'&nbsp;')}
+      <div class="osha-field"><label>Treatment</label><p>${i.treatment||'None recorded'}</p></div>
+    </div>
+  </div>
+  <div class="osha-sect">
+    <div class="osha-stitle">Section 3 — About the Incident</div>
+    <div class="osha-grid">
+      <div class="osha-field"><label>Date of Injury</label><p>${fmtDate(i.date)}</p></div>
+      <div class="osha-field"><label>Time of Event</label><p>${i.time||'—'}</p></div>
+      <div class="osha-field"><label>What was employee doing?</label><p>${i.description.split('.')[0]}.</p></div>
+      <div class="osha-field"><label>What happened?</label><p>${i.description}</p></div>
+      <div class="osha-field"><label>Injury / Illness</label><p>${i.type}</p></div>
+      <div class="osha-field"><label>Body Part Affected</label><p></p></div>
+      <div class="osha-field"><label>Object / Substance</label><p></p></div>
+      <div class="osha-field"><label>Date of Death (if applicable)</label><p>N/A</p></div>
+    </div>
+  </div>
+  <div class="osha-sect" style="border-radius:0 0 8px 8px">
+    <div class="osha-stitle">Section 4 — Completion Details</div>
+    <div class="osha-grid">
+      <div class="osha-field"><label>Completed by</label><p>${i.reportedBy}</p></div>
+      <div class="osha-field"><label>Date Completed</label><p>${fmtDate(i.date)}</p></div>
+      <div class="osha-field"><label>Phone</label><p></p></div>
+    </div>
+  </div>`;
+}
+
+// ─── Corrective Actions ───────────────────────────────────────────────────────
+function renderCorrective(){
+  const openCnt = corrective.filter(c=>c.status!=='Closed').length;
+  document.getElementById('content').innerHTML = `
+  <div class="filters">
+    <input class="srch" id="ca-search" placeholder="Search corrective actions…" oninput="filterCA()">
+    <select id="ca-status-f" onchange="filterCA()" style="width:auto;padding:8px 12px;font-size:13px">
+      <option value="">All Statuses</option><option>Open</option><option>In Progress</option><option>Closed</option>
+    </select>
+    <select id="ca-pri-f" onchange="filterCA()" style="width:auto;padding:8px 12px;font-size:13px">
+      <option value="">All Priorities</option><option>Critical</option><option>High</option><option>Medium</option><option>Low</option>
+    </select>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Incident</th><th>Corrective Action</th><th>Assigned To</th><th>Due Date</th><th>Priority</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="ca-tbody"></tbody>
+      </table>
+    </div>
+  </div>`;
+  filterCA();
+}
+
+function filterCA(){
+  const q=(document.getElementById('ca-search').value||'').toLowerCase();
+  const s=document.getElementById('ca-status-f').value;
+  const p=document.getElementById('ca-pri-f').value;
+  const filtered = corrective.filter(c=>{
+    if(s&&c.status!==s)return false;
+    if(p&&c.priority!==p)return false;
+    if(q&&!(c.id+c.desc+c.assignedTo+c.incidentId).toLowerCase().includes(q))return false;
+    return true;
+  });
+  const priCol={Critical:'badge-red',High:'badge-orange',Medium:'badge-amber',Low:'badge-grey'};
+  const now = new Date();
+  document.getElementById('ca-tbody').innerHTML = filtered.length ? filtered.map(c=>{
+    const overdue = c.status!=='Closed' && new Date(c.due)<now;
+    return `<tr>
+      <td><strong>${c.id}</strong></td>
+      <td><a onclick="viewIncident('${c.incidentId}')" style="color:var(--amber);cursor:pointer;text-decoration:none;font-weight:600">${c.incidentId}</a></td>
+      <td style="max-width:280px">${c.desc}</td>
+      <td>${c.assignedTo}</td>
+      <td style="white-space:nowrap;color:${overdue?'var(--red)':'inherit'};font-weight:${overdue?700:400}">${fmtDate(c.due)}${overdue?' ⚠️':''}</td>
+      <td><span class="badge ${priCol[c.priority]||'badge-grey'}">${c.priority}</span></td>
+      <td><span class="${badgeCls(c.status)}">${c.status}</span></td>
+      <td><button class="btn btn-secondary btn-xs" onclick="editCA('${c.id}')">Update</button></td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">No corrective actions found.</td></tr>';
+}
+
+function openCAModal(id){
+  const c = id ? corrective.find(x=>x.id===id) : null;
+  showModal(c?`Edit ${c.id}`:'New Corrective Action',`
+    <form id="ca-form" onsubmit="saveCA(event,'${id||''}')">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="fg"><label>Linked Incident</label>
+          <select name="incidentId" required>
+            <option value="">Select incident…</option>
+            ${incidents.map(i=>`<option value="${i.id}" ${c?.incidentId===i.id?'selected':''}>${i.id} — ${i.type}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Priority</label>
+          <select name="priority" required>
+            <option value="">Select…</option>
+            ${['Critical','High','Medium','Low'].map(p=>`<option ${c?.priority===p?'selected':''}>${p}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg full"><label>Corrective Action Description *</label>
+          <textarea name="desc" required rows="3" placeholder="Describe the corrective action to be taken…">${c?.desc||''}</textarea>
+        </div>
+        <div class="fg"><label>Assigned To *</label>
+          <input type="text" name="assignedTo" required value="${c?.assignedTo||''}" placeholder="Name / role responsible">
+        </div>
+        <div class="fg"><label>Due Date *</label>
+          <input type="date" name="due" required value="${c?.due||''}">
+        </div>
+        <div class="fg"><label>Status</label>
+          <select name="status">
+            ${['Open','In Progress','Closed'].map(s=>`<option ${(c?.status||'Open')===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg full"><label>Notes</label>
+          <textarea name="notes" rows="2" placeholder="Progress notes, completion details…">${c?.notes||''}</textarea>
+        </div>
+      </div>
+      <div style="display:none"><button type="submit" id="ca-submit"></button></div>
+    </form>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="document.getElementById('ca-submit').click()">Save Action</button>`
+  );
+}
+function editCA(id){ openCAModal(id); }
+
+function saveCA(e, existingId){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const data = {
+    incidentId:f.get('incidentId'), priority:f.get('priority'),
+    desc:f.get('desc'), assignedTo:f.get('assignedTo'),
+    due:f.get('due'), status:f.get('status'), notes:f.get('notes')
+  };
+  if(existingId){
+    const idx = corrective.findIndex(c=>c.id===existingId);
+    if(idx>=0) corrective[idx] = {...corrective[idx],...data};
+  } else {
+    data.id = 'CA-'+String(caIdCounter++).padStart(3,'0');
+    corrective.push(data);
+  }
+  save(); closeModal(); filterCA();
+}
+
+// ─── Inspections ──────────────────────────────────────────────────────────────
+const INSPECTION_TYPES = {
+  'Weekly Safety Walk': [
+    'All aisles and exits clear of obstructions?',
+    'Emergency eyewash stations tested and functioning?',
+    'Fire extinguishers accessible and inspection tags current?',
+    'All machine guards in place and secured?',
+    'Spill kits stocked and accessible?',
+    'Proper PPE in use in all required zones?',
+    'First aid kit stocked and accessible?',
+    'Forklift charging area free of combustibles?',
+    'Electrical panels unobstructed (36-inch clearance)?',
+    'OSHA 300 log posted (Feb–Apr) and accessible?',
+  ],
+  'LOTO Audit': [
+    'LOTO procedures posted at each machine?',
+    'Locks and tags available for all energy isolation points?',
+    'Employees trained on LOTO — records current?',
+    'Energy isolation points labeled on all equipment?',
+    'Periodic inspections of LOTO procedures completed?',
+    'Contractors briefed on LOTO program before work?',
+  ],
+  'Forklift Pre-Shift Inspection': [
+    'Horn functioning?','Lights and alarms operational?',
+    'Forks in good condition — no cracks?','Hydraulics — no leaks?',
+    'Seatbelt in place and functioning?','Tires in good condition?',
+    'Fluid levels checked (oil, hydraulic, coolant)?','Battery charged or fuel level adequate?',
+    'Load capacity plate visible?','Travel paths clear of pedestrians?',
+  ],
+  'Fire Safety Inspection': [
+    'Fire exits unobstructed and marked?','Emergency lighting tested monthly?',
+    'Sprinkler heads clear — 18-inch minimum clearance?','Fire extinguishers inspected monthly?',
+    'Hot work permit system in place?','Flammable storage in approved cabinets?',
+    'Evacuation plan posted and current?','Fire drills conducted — records available?',
+  ],
+  'Chemical / HazCom Inspection': [
+    'SDS available for all chemicals on-site?','Chemical inventory current?',
+    'All containers properly labeled?','Secondary containment in place for liquid chemicals?',
+    'Employees trained on HazCom?','PPE requirements posted at chemical storage?',
+    'Incompatible chemicals segregated?','Waste disposal procedures followed?',
+  ],
+};
+
+function renderInspections(){
+  document.getElementById('content').innerHTML = `
+  <div class="card" style="padding:0;margin-bottom:16px">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Type</th><th>Date</th><th>Conducted By</th><th>Area</th><th>Findings</th><th>Status</th><th></th></tr></thead>
+        <tbody>
+          ${inspections.map(insp=>`<tr>
+            <td><strong>${insp.id}</strong></td>
+            <td>${insp.type}</td>
+            <td>${fmtDate(insp.date)}</td>
+            <td>${insp.conductedBy}</td>
+            <td>${insp.area}</td>
+            <td>${insp.findings>0?`<span class="badge badge-red">${insp.findings} finding${insp.findings>1?'s':''}</span>`:'<span class="badge badge-green">None</span>'}</td>
+            <td><span class="${badgeCls(insp.status)}">${insp.status}</span></td>
+            <td><button class="btn btn-secondary btn-xs" onclick="viewInspection('${insp.id}')">View</button></td>
+          </tr>`).join('')||'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text-muted)">No inspections recorded.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function newInspection(){
+  const types = Object.keys(INSPECTION_TYPES);
+  showModal('New Inspection',`
+    <form id="insp-setup" onsubmit="startInspection(event)">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="fg"><label>Inspection Type *</label>
+          <select name="type" required>
+            <option value="">Select type…</option>
+            ${types.map(t=>`<option>${t}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Date *</label><input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="fg"><label>Conducted By *</label><input type="text" name="conductedBy" required placeholder="Your name"></div>
+        <div class="fg"><label>Area / Location *</label><input type="text" name="area" required placeholder="e.g. Production Floor, Warehouse"></div>
+      </div>
+      <button type="submit" class="btn btn-primary">Begin Inspection →</button>
+    </form>`,``);
+}
+
+function startInspection(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const type = f.get('type');
+  const questions = INSPECTION_TYPES[type]||[];
+  closeModal();
+  const id = 'INSP-'+String(inspIdCounter++).padStart(3,'0');
+  showModal(`${type} — ${id}`,`
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px">Check each item. Mark <strong>N/A</strong> if not applicable. Add notes for any findings.</p>
+    <form id="insp-form" onsubmit="saveInspection(event,'${id}','${type}','${f.get('date')}','${f.get('conductedBy')}','${f.get('area')}')">
+      ${questions.map((q,i)=>`
+        <div style="padding:12px 0;border-bottom:1px solid var(--border)">
+          <div style="font-size:13.5px;font-weight:600;margin-bottom:8px">${q}</div>
+          <div style="display:flex;gap:16px;align-items:center">
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer">
+              <input type="radio" name="q${i}" value="yes" required> Pass ✓
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer">
+              <input type="radio" name="q${i}" value="no"> Finding ✗
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;font-weight:400;letter-spacing:0;cursor:pointer">
+              <input type="radio" name="q${i}" value="na"> N/A
+            </label>
+          </div>
+          <input type="text" name="note${i}" placeholder="Note (required for findings)…" style="margin-top:8px;font-size:12px;padding:6px 10px">
+        </div>`).join('')}
+      <div style="display:none"><button type="submit" id="insp-submit"></button></div>
+    </form>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="document.getElementById('insp-submit').click()">Submit Inspection</button>`
+  );
+}
+
+function saveInspection(e,id,type,date,conductedBy,area){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const questions = INSPECTION_TYPES[type]||[];
+  const items = questions.map((q,i)=>({q, a:f.get('q'+i)||'', note:f.get('note'+i)||''}));
+  const findings = items.filter(x=>x.a==='no').length;
+  inspections.unshift({id,type,date,conductedBy,area,status:findings>0?'Findings Noted':'Completed',findings,items});
+  save(); closeModal(); renderInspections();
+}
+
+function viewInspection(id){
+  const insp = inspections.find(x=>x.id===id); if(!insp) return;
+  showModal(`${insp.type} — ${insp.id}`,`
+    <div class="pill-row">
+      <span class="badge badge-grey">${fmtDate(insp.date)}</span>
+      <span class="badge badge-grey">${insp.conductedBy}</span>
+      <span class="badge badge-grey">${insp.area}</span>
+      ${insp.findings>0?`<span class="badge badge-red">${insp.findings} finding${insp.findings>1?'s':''}</span>`:'<span class="badge badge-green">All Clear</span>'}
+    </div>
+    ${insp.items.map(it=>`<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);gap:10px">
+      <div style="font-size:13px;flex:1">${it.q}${it.note?`<br><span style="font-size:11px;color:var(--text-muted)">${it.note}</span>`:''}</div>
+      <div>${it.a==='yes'?'<span class="badge badge-green">Pass</span>':it.a==='no'?'<span class="badge badge-red">Finding</span>':'<span class="badge badge-grey">N/A</span>'}</div>
+    </div>`).join('')}`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`);
+}
+
+// ─── Training Library ─────────────────────────────────────────────────────────
+const TRAINING_PROGRAMS = [
+  {icon:'⚡',title:'Lockout/Tagout (LOTO)',desc:'Energy control procedures for all authorized employees. Includes hands-on equipment demonstration.',freq:'Annual',type:'Required — OSHA 29 CFR 1910.147'},
+  {icon:'🧪',title:'Hazard Communication (HazCom / GHS)',desc:'Right-to-Know training covering SDS, GHS labeling, and chemical hazards.',freq:'Upon hire + annual',type:'Required — OSHA 29 CFR 1910.1200'},
+  {icon:'🦺',title:'Personal Protective Equipment (PPE)',desc:'Selection, use, care, and limitations of all PPE used at CMI.',freq:'Annual',type:'Required — OSHA 29 CFR 1910.132'},
+  {icon:'🔥',title:'Fire Safety & Emergency Evacuation',desc:'Emergency exit routes, fire extinguisher use (PASS), and assembly points.',freq:'Annual + drill',type:'Required — OSHA 29 CFR 1910.157'},
+  {icon:'🚜',title:'Powered Industrial Truck (Forklift)',desc:'Certification training for all forklift operators. Includes written exam and practical evaluation.',freq:'Every 3 years',type:'Required — OSHA 29 CFR 1910.178'},
+  {icon:'🏥',title:'First Aid / CPR / AED',desc:'First aid response, CPR technique, and AED operation for designated responders.',freq:'Every 2 years',type:'Recommended'},
+  {icon:'💡',title:'Electrical Safety Awareness',desc:'Safe work practices around electrical hazards, arc flash awareness, and panel safety.',freq:'Annual',type:'Required for electrical work'},
+  {icon:'🧤',title:'Machine Guarding',desc:'Principles of guarding, safe operating procedures, and recognition of unguarded hazards.',freq:'Annual',type:'Required — OSHA 29 CFR 1910.217'},
+  {icon:'🦻',title:'Hearing Conservation',desc:'Noise exposure limits, proper hearing protection selection, and audiometric testing.',freq:'Annual',type:'Required — OSHA 29 CFR 1910.95'},
+  {icon:'🧰',title:'Hand & Power Tool Safety',desc:'Safe selection, inspection, and use of common hand and power tools.',freq:'Annual',type:'Recommended'},
+  {icon:'📦',title:'Ergonomics & Safe Lifting',desc:'Body mechanics, safe lifting techniques, and recognizing ergonomic risk factors.',freq:'Periodic',type:'Recommended'},
+  {icon:'🆘',title:'Incident Reporting Procedures',desc:'How to report near misses, injuries, and property damage using the CMI Safety Portal.',freq:'Upon hire',type:'Required — CMI Policy'},
+];
+
+function renderTraining(){
+  document.getElementById('content').innerHTML = `
+  <div class="tab-row" id="tr-tabs">
+    <div class="tab active" onclick="trTab(0,this)">Training Programs</div>
+    <div class="tab" onclick="trTab(1,this)">Completion Records</div>
+  </div>
+  <div id="tr-content"></div>`;
+  renderTrainingPrograms();
+}
+
+function trTab(i, el){
+  document.querySelectorAll('#tr-tabs .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  [renderTrainingPrograms, renderTrainingRecords][i]();
+}
+
+function renderTrainingPrograms(){
+  document.getElementById('tr-content').innerHTML = `
+  <div class="training-grid">
+    ${TRAINING_PROGRAMS.map((t,i)=>`<div class="tr-card" onclick="viewTraining(${i})">
+      <div class="tr-icon">${t.icon}</div>
+      <div class="tr-title">${t.title}</div>
+      <div class="tr-desc">${t.desc}</div>
+      <div style="margin-top:14px;display:flex;align-items:center;justify-content:space-between">
+        <span class="badge badge-grey" style="font-size:10px">${t.freq}</span>
+        <span style="font-size:10px;color:var(--text-muted)">${t.type.startsWith('Required')?'<span style="color:var(--red)">●</span>':'<span style="color:var(--orange)">●</span>'} ${t.type.split('—')[0].trim()}</span>
+      </div>
+    </div>`).join('')}
+  </div>`;
+}
+
+function viewTraining(i){
+  const t = TRAINING_PROGRAMS[i];
+  showModal(t.title,`
+    <div class="pill-row">
+      <span class="badge ${t.type.startsWith('Required')?'badge-red':'badge-amber'}">${t.type.split('—')[0].trim()}</span>
+      <span class="badge badge-grey">Frequency: ${t.freq}</span>
+      ${t.type.includes('—')?`<span class="badge badge-blue">${t.type.split('—')[1].trim()}</span>`:''}
+    </div>
+    <p style="font-size:14px;line-height:1.7;margin-bottom:16px">${t.desc}</p>
+    <div class="divider"></div>
+    <div class="osha-stitle">Training Delivery Options</div>
+    <div style="font-size:13px;line-height:1.8;color:var(--text-mid)">
+      ● Classroom instruction with sign-in sheet<br>
+      ● Online module with quiz completion<br>
+      ● On-the-job / hands-on demonstration<br>
+      ● Toolbox talk (refresher only)
+    </div>
+    <div class="divider"></div>
+    <div class="osha-stitle">Documentation Required</div>
+    <div style="font-size:13px;line-height:1.8;color:var(--text-mid)">
+      ● Employee name and signature<br>
+      ● Date of training<br>
+      ● Trainer name and qualifications<br>
+      ● Topics covered / materials used<br>
+      ● Test score (if applicable)
+    </div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Close</button>
+     <button class="btn btn-primary" onclick="logTrainingRecord('${t.title}')">Log Completion</button>`);
+}
+
+function renderTrainingRecords(){
+  const records = STORE.get('training_records')||[];
+  document.getElementById('tr-content').innerHTML = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-primary btn-sm" onclick="logTrainingRecord('')">✚ Log Training</button>
+  </div>
+  <div class="card" style="padding:0">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Employee</th><th>Program</th><th>Date</th><th>Trainer</th><th>Score</th><th>Expires</th></tr></thead>
+        <tbody>
+          ${records.length ? records.map(r=>`<tr>
+            <td>${r.employee}</td><td>${r.program}</td><td>${fmtDate(r.date)}</td>
+            <td>${r.trainer}</td><td>${r.score||'—'}</td><td>${r.expires||'—'}</td>
+          </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted)">No training records logged yet.</td></tr>'}
+        </tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function logTrainingRecord(program){
+  showModal('Log Training Completion',`
+    <form id="tr-rec-form" onsubmit="saveTrainingRecord(event)">
+      <div class="form-grid" style="margin-bottom:16px">
+        <div class="fg full"><label>Employee Name *</label><input type="text" name="employee" required placeholder="Employee full name"></div>
+        <div class="fg full"><label>Training Program *</label>
+          <select name="program" required>
+            <option value="">Select program…</option>
+            ${TRAINING_PROGRAMS.map(t=>`<option ${t.title===program?'selected':''}>${t.title}</option>`).join('')}
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="fg"><label>Date Completed *</label><input type="date" name="date" required value="${new Date().toISOString().split('T')[0]}"></div>
+        <div class="fg"><label>Trainer / Instructor</label><input type="text" name="trainer" placeholder="Name / company"></div>
+        <div class="fg"><label>Test Score</label><input type="text" name="score" placeholder="e.g. 92%"></div>
+        <div class="fg"><label>Expiration Date</label><input type="date" name="expires"></div>
+      </div>
+      <button type="submit" style="display:none" id="tr-submit"></button>
+    </form>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+     <button class="btn btn-primary" onclick="document.getElementById('tr-submit').click()">Save Record</button>`);
+}
+
+function saveTrainingRecord(e){
+  e.preventDefault();
+  const f = new FormData(e.target);
+  const records = STORE.get('training_records')||[];
+  records.unshift({employee:f.get('employee'),program:f.get('program'),date:f.get('date'),trainer:f.get('trainer'),score:f.get('score'),expires:f.get('expires')});
+  STORE.set('training_records',records);
+  closeModal(); renderTrainingRecords();
+}
+
+// ─── Safety Programs ──────────────────────────────────────────────────────────
+const PROGRAMS = [
+  {icon:'⚡',title:'Lockout / Tagout (LOTO)',updated:'2025-01-15',status:'Current',desc:'Energy control program covering written procedures, employee training, and annual audits for all equipment with hazardous energy sources.'},
+  {icon:'🧪',title:'Hazard Communication Program',updated:'2025-03-01',status:'Current',desc:'HazCom program per OSHA 29 CFR 1910.1200. Includes SDS management system, GHS labeling procedures, and employee training requirements.'},
+  {icon:'🦺',title:'Personal Protective Equipment Program',updated:'2025-01-15',status:'Current',desc:'PPE hazard assessment, selection criteria, and inspection requirements for all departments. Includes a PPE matrix by area.'},
+  {icon:'🚜',title:'Powered Industrial Truck Program',updated:'2024-11-10',status:'Current',desc:'Forklift safety program including operator certification, pre-shift inspection checklists, and traffic management plan.'},
+  {icon:'🔥',title:'Emergency Action Plan',updated:'2025-02-20',status:'Current',desc:'Written EAP covering evacuation procedures, fire emergencies, severe weather, chemical spill, and active threat. Includes floor warden assignments.'},
+  {icon:'🛡️',title:'Machine Guarding Program',updated:'2024-09-01',status:'Review Due',desc:'Standards for guarding rotating parts, point-of-operation hazards, and nip points. Includes annual guarding audit procedure.'},
+  {icon:'🎤',title:'Hearing Conservation Program',updated:'2024-08-01',status:'Review Due',desc:'Noise monitoring results, hearing protection requirements by area, audiometric testing records, and training documentation.'},
+  {icon:'🧰',title:'Confined Space Program',updated:'2025-01-01',status:'Current',desc:'Permit-required confined space identification, entry procedures, atmospheric testing, rescue plans, and trained entrant/attendant records.'},
+  {icon:'🧯',title:'Hot Work Permit Program',updated:'2024-12-01',status:'Current',desc:'Written hot work procedures, permit system, fire watch requirements, and equipment inspection for welding, cutting, and grinding.'},
+  {icon:'🌊',title:'Spill Response Plan',updated:'2025-04-01',status:'Current',desc:'Chemical spill containment procedures, spill kit locations, reporting requirements, and disposal procedures by material type.'},
+];
+
+function renderPrograms(){
+  document.getElementById('content').innerHTML = `
+  <div style="display:flex;justify-content:flex-end;margin-bottom:14px">
+    <button class="btn btn-primary btn-sm" onclick="addProgram()">✚ Add Program</button>
+  </div>
+  ${PROGRAMS.map(p=>`<div class="prog-item">
+    <div class="prog-icon">${p.icon}</div>
+    <div class="prog-info">
+      <div class="prog-title">${p.title}</div>
+      <div class="prog-meta">${p.desc.substring(0,90)}…</div>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0">
+      <span class="badge ${p.status==='Current'?'badge-green':'badge-amber'}">${p.status}</span>
+      <span style="font-size:11px;color:var(--text-muted)">Updated ${fmtDate(p.updated)}</span>
+      <button class="btn btn-secondary btn-xs" onclick="viewProgram('${p.title}')">View</button>
+    </div>
+  </div>`).join('')}`;
+}
+
+function viewProgram(title){
+  const p = PROGRAMS.find(x=>x.title===title); if(!p)return;
+  showModal(p.title,`
+    <div class="pill-row">
+      <span class="badge ${p.status==='Current'?'badge-green':'badge-amber'}">${p.status}</span>
+      <span class="badge badge-grey">Last Updated: ${fmtDate(p.updated)}</span>
+    </div>
+    <p style="font-size:14px;line-height:1.7;margin-bottom:20px">${p.desc}</p>
+    <div class="osha-stitle">Program Elements</div>
+    <div style="font-size:13px;line-height:1.9;color:var(--text-mid)">
+      ● Written program document on file<br>
+      ● Employee training records<br>
+      ● Annual program review<br>
+      ● Management assignment of responsibility<br>
+      ● Compliance audit schedule
+    </div>
+    <div class="divider"></div>
+    <div style="font-size:12px;color:var(--text-muted)">To access the full written program document, contact the CMI Safety Manager.</div>`,
+    `<button class="btn btn-secondary" onclick="closeModal()">Close</button>`);
+}
+
+function addProgram(){
+  alert('Program document upload coming soon. Contact Safety Manager to add a new written program to the repository.');
+}
+
+// ─── Emergency Contacts ───────────────────────────────────────────────────────
+function renderContacts(){
+  document.getElementById('content').innerHTML = `
+  <div class="sec-title" style="color:var(--red);margin-bottom:4px">⚠ In an emergency, call 911 first.</div>
+  <div class="sec-sub">Notify supervision immediately after emergency services are contacted.</div>
+  <div class="contact-grid" style="margin-bottom:24px">
+    ${[
+      {name:'911 — Emergency Services',role:'Police / Fire / Medical Emergency',lines:[{label:'📞',val:'911'}],highlight:true},
+      {name:'Poison Control Center',role:'Chemical exposure / ingestion',lines:[{label:'📞',val:'1-800-222-1222'}]},
+      {name:'OSHA 24-Hour Hotline',role:'Report fatalities / hospitalizations within 8 hours',lines:[{label:'📞',val:'1-800-321-OSHA (6742)'}]},
+      {name:'National Response Center',role:'Environmental spill / chemical release reporting',lines:[{label:'📞',val:'1-800-424-8802'}]},
+    ].map(c=>`<div class="con-card" style="${c.highlight?'border-color:var(--red);border-width:2px':''}">
+      <div class="con-name" style="${c.highlight?'color:var(--red)':''}">${c.name}</div>
+      <div class="con-role">${c.role}</div>
+      ${c.lines.map(l=>`<div class="con-row"><span>${l.label}</span><strong>${l.val}</strong></div>`).join('')}
+    </div>`).join('')}
+  </div>
+  <div style="font-size:14px;font-weight:700;margin-bottom:14px">CMI Internal Contacts</div>
+  <div class="contact-grid">
+    ${[
+      {name:'Safety Manager',role:'All safety concerns, incidents, OSHA compliance',lines:[{label:'📞',val:'Ext. 201'},{label:'📧',val:'safety@cmiplastics.com'}]},
+      {name:'Plant Manager',role:'Escalated safety issues, shutdowns, regulatory visits',lines:[{label:'📞',val:'Ext. 100'},{label:'📧',val:'plant.mgr@cmiplastics.com'}]},
+      {name:'Maintenance Supervisor',role:'Equipment failure, energy hazards, facility issues',lines:[{label:'📞',val:'Ext. 305'},{label:'📧',val:'maintenance@cmiplastics.com'}]},
+      {name:'HR Manager',role:'Worker\'s comp, medical leave, employee relations',lines:[{label:'📞',val:'Ext. 150'},{label:'📧',val:'hr@cmiplastics.com'}]},
+      {name:'First Aid Responders',role:'On-site first aid — see posted list in breakroom',lines:[{label:'📍',val:'First Aid Station: Break Room, Line 2, Shipping Office'}]},
+      {name:'Environmental / EHS',role:'Spills, environmental releases, air / water compliance',lines:[{label:'📞',val:'Ext. 210'},{label:'📧',val:'ehs@cmiplastics.com'}]},
+    ].map(c=>`<div class="con-card">
+      <div class="con-name">${c.name}</div>
+      <div class="con-role">${c.role}</div>
+      ${c.lines.map(l=>`<div class="con-row"><span>${l.label}</span><span>${l.val}</span></div>`).join('')}
+    </div>`).join('')}
+  </div>
+  <div class="divider"></div>
+  <div style="font-size:14px;font-weight:700;margin-bottom:14px">Nearby Medical Facilities</div>
+  <div class="contact-grid">
+    <div class="con-card">
+      <div class="con-name">Nearest Urgent Care</div>
+      <div class="con-role">Non-emergency occupational injuries</div>
+      <div class="con-row">📍 <span>Update with your local facility address</span></div>
+      <div class="con-row">📞 <span></span></div>
+    </div>
+    <div class="con-card">
+      <div class="con-name">Nearest Emergency Room</div>
+      <div class="con-role">Serious injuries requiring emergency treatment</div>
+      <div class="con-row">📍 <span>Update with your local hospital address</span></div>
+      <div class="con-row">📞 <span></span></div>
+    </div>
+  </div>`;
+}
+
+// ─── Modal helpers ────────────────────────────────────────────────────────────
+function showModal(title, body, footer=''){
+  closeModal();
+  const ov = document.createElement('div');
+  ov.className='modal-ov'; ov.id='modal-overlay';
+  ov.innerHTML=`<div class="modal">
+    <div class="modal-hd"><h3>${title}</h3><button class="close-x" onclick="closeModal()">×</button></div>
+    <div class="modal-body">${body}</div>
+    ${footer?`<div class="modal-ft">${footer}</div>`:''}
+  </div>`;
+  ov.addEventListener('click',e=>{ if(e.target===ov) closeModal(); });
+  document.body.appendChild(ov);
+}
+function closeModal(){ document.getElementById('modal-overlay')?.remove(); }
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+function fmtDate(d){ if(!d)return '—'; const dt=new Date(d+'T12:00:00'); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function capitalize(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : ''; }
+function badgeCls(s){ return ({Open:'badge badge-red','Under Review':'badge badge-amber',Closed:'badge badge-green','In Progress':'badge badge-blue','Completed':'badge badge-green','Findings Noted':'badge badge-amber'})[s]||'badge badge-grey'; }
+
+// ─── Init ──────────────────────────────────────────────────────────────────────
+updateBadge();
+render();
+</script>
+</body>
+</html>

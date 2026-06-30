@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CMI Plastics — Weekly KPI Dashboard</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --navy:#0f2744;--navy2:#1a3a5c;
+  --blue:#1e6fbf;--blue-lt:#3b82f6;
+  --green:#16a34a;--amber:#d97706;--red:#dc2626;
+  --gray50:#f8fafc;--gray100:#f1f5f9;--gray200:#e2e8f0;
+  --gray400:#94a3b8;--gray600:#475569;--gray800:#1e293b;
+  --sidebar:230px;--top:64px;--radius:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.10),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 16px rgba(0,0,0,.14);
+}
+*,*::before,*::after{box-sizing:border-box;}
+body{margin:0;font-family:'Segoe UI',system-ui,sans-serif;background:var(--gray100);color:var(--gray800);font-size:14px;}
+
+/* ── SIDEBAR ── */
+#sidebar{position:fixed;top:0;left:0;width:var(--sidebar);height:100vh;background:var(--navy);display:flex;flex-direction:column;z-index:200;}
+.sb-brand{padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:12px;}
+.sb-logo{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#1e6fbf,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px;flex-shrink:0;}
+.sb-brand-text .co{font-size:13px;font-weight:700;color:#fff;line-height:1.2;}
+.sb-brand-text .site{font-size:11px;color:#94a3b8;}
+#sidebar nav{flex:1;padding:10px 0;overflow-y:auto;}
+.nav-sect{padding:14px 18px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#64748b;}
+#sidebar nav a{display:flex;align-items:center;gap:10px;padding:9px 18px;color:#cbd5e1;text-decoration:none;font-size:13px;transition:background .15s,color .15s;border-right:3px solid transparent;}
+#sidebar nav a:hover{background:rgba(255,255,255,.05);color:#fff;}
+#sidebar nav a.active{background:rgba(59,130,246,.18);color:#60a5fa;border-right-color:var(--blue-lt);}
+#sidebar nav a i{width:16px;text-align:center;font-size:14px;}
+.sb-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#64748b;}
+
+/* ── TOPBAR ── */
+#topbar{position:fixed;top:0;left:var(--sidebar);right:0;height:var(--top);background:#fff;border-bottom:1px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;padding:0 24px;z-index:199;}
+.tb-left{display:flex;align-items:center;gap:12px;}
+.tb-title{font-size:19px;font-weight:700;color:var(--navy2);}
+.tb-week{background:var(--gray100);border:1px solid var(--gray200);border-radius:8px;padding:5px 12px;font-size:13px;color:var(--gray600);font-weight:500;display:flex;align-items:center;gap:7px;}
+.tb-right{display:flex;align-items:center;gap:12px;}
+.btn-primary{background:var(--blue);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s;}
+.btn-primary:hover{background:#1558a0;}
+.btn-outline{background:#fff;color:var(--gray600);border:1px solid var(--gray200);padding:7px 14px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .15s;}
+.btn-outline:hover{border-color:var(--blue-lt);color:var(--blue);}
+.btn-back{background:var(--navy2);color:#fff;border:none;padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;display:none;align-items:center;gap:8px;transition:background .15s;}
+.btn-back:hover{background:#0f2744;}
+.btn-back.visible{display:flex;}
+.avatar{width:36px;height:36px;background:var(--navy2);border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700;}
+
+/* ── MAIN ── */
+#main{margin-left:var(--sidebar);margin-top:var(--top);padding:24px;min-height:calc(100vh - var(--top));}
+.page{display:none;animation:fadeIn .22s ease;}
+.page.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sec-hdr h2{font-size:17px;font-weight:700;color:var(--navy2);margin:0;}
+
+/* ── HERO CARDS ── */
+.kpi-hero{display:grid;grid-template-columns:repeat(6,1fr);gap:14px;margin-bottom:24px;}
+.hero-card{background:#fff;border-radius:var(--radius);padding:20px 14px 16px;box-shadow:var(--shadow);border-top:4px solid var(--gray200);text-align:center;cursor:pointer;transition:transform .18s,box-shadow .18s;position:relative;user-select:none;}
+.hero-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-md);}
+.hero-card:active{transform:translateY(-2px);}
+.hero-card.rag-green{border-top-color:var(--green);}
+.hero-card.rag-amber{border-top-color:var(--amber);}
+.hero-card.rag-red{border-top-color:var(--red);}
+.hero-card .click-hint{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--gray400);opacity:0;transition:opacity .2s;white-space:nowrap;}
+.hero-card:hover .click-hint{opacity:1;}
+.hero-icon{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px;}
+.rag-green .hero-icon{background:#dcfce7;color:#16a34a;}
+.rag-amber .hero-icon{background:#fef3c7;color:#d97706;}
+.rag-red .hero-icon{background:#fee2e2;color:#dc2626;}
+.hc-label{font-size:10px;color:var(--gray400);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;}
+.hc-val{font-size:30px;font-weight:800;line-height:1;color:var(--gray800);margin-bottom:6px;}
+.hc-goal{font-size:11px;font-weight:600;margin-bottom:18px;}
+.goal-met{color:var(--green);}.goal-miss{color:var(--red);}.goal-warn{color:var(--amber);}
+
+/* ── DETAIL PAGE ── */
+.detail-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px;}
+.detail-stat{background:#fff;border-radius:var(--radius);padding:20px 22px;box-shadow:var(--shadow);border-left:5px solid var(--gray200);}
+.detail-stat.ds-green{border-left-color:var(--green);}
+.detail-stat.ds-amber{border-left-color:var(--amber);}
+.detail-stat.ds-red{border-left-color:var(--red);}
+.detail-stat.ds-blue{border-left-color:var(--blue-lt);}
+.ds-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gray400);letter-spacing:.05em;margin-bottom:4px;}
+.ds-val{font-size:32px;font-weight:800;color:var(--gray800);line-height:1;margin-bottom:3px;}
+.ds-note{font-size:12px;color:var(--gray400);}
+.detail-chart-card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:24px;margin-bottom:24px;}
+.detail-chart-title{font-size:15px;font-weight:700;color:var(--navy2);margin-bottom:16px;display:flex;align-items:center;gap:10px;}
+.detail-chart-wrap{position:relative;height:320px;}
+
+/* ── CARDS / TABLES ── */
+.chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;}
+.card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:20px;}
+.card-header{padding:16px 20px;border-bottom:1px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;}
+.ch-left{display:flex;align-items:center;gap:10px;}
+.card-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.card-header h3{margin:0;font-size:15px;font-weight:700;color:var(--navy2);}
+.card-header .sub{font-size:12px;color:var(--gray400);margin-top:1px;}
+.card-body{padding:20px;}
+.chart-wrap{position:relative;height:220px;}
+
+/* ── FORM ── */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:12px;font-weight:700;color:var(--gray600);text-transform:uppercase;letter-spacing:.04em;}
+.form-input{border:1.5px solid var(--gray200);border-radius:8px;padding:9px 12px;font-size:14px;color:var(--gray800);background:var(--gray50);transition:border-color .15s,box-shadow .15s;width:100%;font-family:inherit;}
+.form-input:focus{outline:none;border-color:var(--blue-lt);box-shadow:0 0 0 3px rgba(59,130,246,.12);background:#fff;}
+.unit-wrap{position:relative;}.unit-wrap .form-input{padding-right:44px;}
+.unit-label{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--gray400);pointer-events:none;}
+select.form-input{appearance:none;cursor:pointer;}
+textarea.form-input{resize:vertical;min-height:76px;}
+.form-divider{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.06em;margin:20px 0 14px;display:flex;align-items:center;gap:10px;}
+.form-divider::after{content:'';flex:1;height:1px;background:var(--gray200);}
+
+/* ── RAG PILL ── */
+.rag-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:700;}
+.rag-pill.green{background:#dcfce7;color:#16a34a;}
+.rag-pill.amber{background:#fef3c7;color:#d97706;}
+.rag-pill.red{background:#fee2e2;color:#dc2626;}
+
+/* ── PROGRESS ── */
+.prog-bar-wrap{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+.prog-track{flex:1;height:8px;background:var(--gray200);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--blue-lt));border-radius:4px;transition:width .4s ease;}
+.prog-label{font-size:13px;font-weight:600;color:var(--gray600);white-space:nowrap;}
+
+/* ── 5S SLIDERS ── */
+.fives-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.fives-item{background:var(--gray50);border:1.5px solid var(--gray200);border-radius:10px;padding:14px 10px;text-align:center;transition:border-color .2s;}
+.fives-item:focus-within{border-color:var(--blue-lt);}
+.fi-letter{font-size:20px;font-weight:800;color:var(--navy2);margin-bottom:1px;}
+.fi-name{font-size:10px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;}
+.fives-item input[type=range]{width:100%;accent-color:var(--blue);cursor:pointer;}
+.fi-score{font-size:20px;font-weight:800;color:var(--blue-lt);margin-top:6px;}
+.fives-total{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:16px;padding:16px;background:var(--gray50);border-radius:10px;border:1px solid var(--gray200);}
+.ft-label{font-size:14px;font-weight:700;color:var(--gray600);}
+.ft-val{font-size:36px;font-weight:800;color:var(--blue);}
+.ft-max{font-size:16px;color:var(--gray400);align-self:flex-end;margin-bottom:6px;}
+
+/* ── HISTORY TABLE ── */
+.kpi-table{width:100%;border-collapse:collapse;}
+.kpi-table th{background:var(--gray100);color:var(--gray600);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:10px 14px;text-align:left;border-bottom:1px solid var(--gray200);}
+.kpi-table td{padding:11px 14px;border-bottom:1px solid var(--gray100);font-size:13px;}
+.kpi-table tr:last-child td{border-bottom:none;}
+.kpi-table tr:hover td{background:var(--gray50);}
+
+/* ── INLINE EDIT ── */
+.d-table{width:100%;border-collapse:collapse;}
+.d-table th{background:var(--gray100);color:var(--gray600);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;padding:10px 12px;text-align:left;border-bottom:1px solid var(--gray200);}
+.d-table td{padding:10px 12px;border-bottom:1px solid var(--gray100);font-size:13px;vertical-align:middle;}
+.d-table tr:last-child td{border-bottom:none;}
+.d-table tr:hover td{background:var(--gray50);}
+.d-table tr.editing td{background:#eff6ff !important;}
+.edit-btn{background:none;border:1px solid var(--gray200);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--gray600);cursor:pointer;transition:all .15s;}
+.edit-btn:hover{border-color:var(--blue-lt);color:var(--blue);background:#eff6ff;}
+.save-btn{background:var(--blue);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;}
+.cancel-btn{background:none;border:1px solid var(--gray200);border-radius:6px;padding:4px 10px;font-size:12px;color:var(--gray600);cursor:pointer;margin-left:6px;}
+.inline-input{border:1.5px solid var(--blue-lt);border-radius:6px;padding:4px 8px;font-size:13px;font-weight:600;width:90px;color:var(--gray800);background:#fff;}
+.inline-input:focus{outline:none;box-shadow:0 0 0 2px rgba(59,130,246,.2);}
+
+/* ── TARGETS ── */
+.target-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.target-card{background:var(--gray50);border:1.5px solid var(--gray200);border-radius:10px;padding:16px;}
+.tc-label{font-size:12px;font-weight:700;text-transform:uppercase;color:var(--gray600);margin-bottom:10px;display:flex;align-items:center;gap:7px;}
+.tc-inputs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.tc-field label{font-size:10px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.04em;}
+.tc-field input{width:100%;border:1.5px solid var(--gray200);border-radius:6px;padding:6px 8px;font-size:13px;font-weight:600;color:var(--gray800);background:#fff;}
+.tc-field input:focus{outline:none;border-color:var(--blue-lt);}
+
+/* ── TOAST ── */
+#toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;}
+.toast-msg{background:#1e293b;color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:var(--shadow-md);animation:slideIn .3s ease;}
+.toast-msg.success{border-left:4px solid var(--green);}
+.toast-msg.error{border-left:4px solid var(--red);}
+@keyframes slideIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* ── RESPONSIVE ── */
+@media(max-width:1200px){.kpi-hero{grid-template-columns:repeat(3,1fr);}.chart-grid{grid-template-columns:1fr;}.detail-hero{grid-template-columns:1fr 1fr;}}
+@media(max-width:900px){:root{--sidebar:0px;}#sidebar{display:none;}#topbar{left:0;}}
+@media(max-width:600px){.kpi-hero{grid-template-columns:repeat(2,1fr);}.fives-grid{grid-template-columns:repeat(3,1fr);}.form-grid{grid-template-columns:1fr;}.detail-hero{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">CMI</div>
+    <div class="sb-brand-text">
+      <div class="co">CMI Plastics</div>
+      <div class="site">Ayden, NC</div>
+    </div>
+  </div>
+  <nav>
+    <div class="nav-sect">KPI Management</div>
+    <a href="#" class="active" onclick="showPage('dashboard',this)"><i class="fa-solid fa-chart-line"></i> Dashboard</a>
+    <a href="#" onclick="showPage('entry',this)"><i class="fa-solid fa-pen-to-square"></i> Weekly Entry</a>
+    <a href="#" onclick="showPage('history',this)"><i class="fa-solid fa-clock-rotate-left"></i> History</a>
+    <a href="#" onclick="showPage('targets',this)"><i class="fa-solid fa-bullseye"></i> Targets</a>
+    <div class="nav-sect">Modules</div>
+    <a href="cmms.html"><i class="fa-solid fa-wrench"></i> CMMS</a>
+  </nav>
+  <div class="sb-footer">
+    <div style="font-weight:600;color:#94a3b8">v4.0 · 2026</div>
+    <div>Weekly KPI System</div>
+  </div>
+</aside>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="tb-left">
+    <!-- Back button — only visible on detail page -->
+    <button class="btn-back" id="btnBack" onclick="goBack()">
+      <i class="fa-solid fa-arrow-left"></i> Back to Dashboard
+    </button>
+    <div class="tb-title" id="pageTitle">KPI Dashboard</div>
+    <div class="tb-week" id="weekBadge">
+      <i class="fa-regular fa-calendar" style="color:var(--blue-lt)"></i>
+      <span id="weekLabel">—</span>
+    </div>
+  </div>
+  <div class="tb-right">
+    <button class="btn-outline" onclick="exportData()"><i class="fa-solid fa-download"></i> Export</button>
+    <button class="btn-primary" onclick="goEntry()"><i class="fa-solid fa-plus"></i> New Entry</button>
+    <div class="avatar" title="Mennen Suleiman">MS</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main id="main">
+
+<!-- ══ DASHBOARD ══ -->
+<div class="page active" id="page-dashboard">
+  <div class="sec-hdr">
+    <h2>Weekly KPI Overview</h2>
+    <span id="dashWeekBadge" style="font-size:13px;color:var(--gray400);font-weight:600"></span>
+  </div>
+  <div class="kpi-hero" id="heroGrid"></div>
+  <div class="chart-grid">
+    <div class="card">
+      <div class="card-header">
+        <div class="ch-left">
+          <div class="card-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-truck-fast"></i></div>
+          <div><h3>On-Time Delivery (OTD)</h3><div class="sub">12-week trend · click tile for full detail</div></div>
+        </div>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="ch_otd"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="ch-left">
+          <div class="card-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-shield-halved"></i></div>
+          <div><h3>Safety — Recordables &amp; Near Misses</h3><div class="sub">12-week trend</div></div>
+        </div>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="ch_safety"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="ch-left">
+          <div class="card-icon" style="background:#ede9fe;color:#6d28d9"><i class="fa-solid fa-gears"></i></div>
+          <div><h3>OEE — Overall Equipment Effectiveness</h3><div class="sub">85% world-class target · 12-week</div></div>
+        </div>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="ch_oee"></canvas></div></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="ch-left">
+          <div class="card-icon" style="background:#dbeafe;color:#1d4ed8"><i class="fa-solid fa-broom"></i></div>
+          <div><h3>5S Score</h3><div class="sub">Target ≥ 20/25 · 12-week</div></div>
+        </div>
+      </div>
+      <div class="card-body"><div class="chart-wrap"><canvas id="ch_5s"></canvas></div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#fce7f3;color:#be185d"><i class="fa-solid fa-clipboard-check"></i></div>
+        <div><h3>Maintenance Work Order Adherence</h3><div class="sub">Completed vs. planned · Adherence % · 12-week</div></div>
+      </div>
+    </div>
+    <div class="card-body"><div class="chart-wrap" style="height:240px"><canvas id="ch_mwo"></canvas></div></div>
+  </div>
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#ede9fe;color:#6d28d9"><i class="fa-solid fa-gauge-high"></i></div>
+        <div><h3>OEE Breakdown — Current Week</h3><div class="sub">Availability × Performance × Quality</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div style="display:grid;grid-template-columns:160px 1fr;gap:24px;align-items:center">
+        <div style="text-align:center">
+          <canvas id="oeeGauge" width="160" height="160"></canvas>
+          <div style="font-size:13px;color:var(--gray400);margin-top:4px">Overall OEE</div>
+        </div>
+        <div id="oeeBreakdown" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ KPI DETAIL PAGE ══ -->
+<div class="page" id="page-detail">
+  <!-- injected entirely by JS -->
+</div>
+
+<!-- ══ ENTRY FORM ══ -->
+<div class="page" id="page-entry">
+  <div class="sec-hdr">
+    <h2>Weekly KPI Entry Form</h2>
+    <div style="display:flex;gap:10px">
+      <button class="btn-outline" onclick="clearForm()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+      <button class="btn-primary" onclick="saveEntry()"><i class="fa-solid fa-floppy-disk"></i> Save Entry</button>
+    </div>
+  </div>
+  <div class="prog-bar-wrap">
+    <div class="prog-track"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-label" id="progLabel">0% complete</div>
+  </div>
+  <!-- Week -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#dbeafe;color:#1d4ed8"><i class="fa-regular fa-calendar-days"></i></div>
+        <div><h3>Week Identifier</h3><div class="sub">Select the week this data covers</div></div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Week Starting (Monday)</label>
+          <input type="date" class="form-input tracked" id="f_week" onchange="updateWeekLabel();track()"></div>
+        <div class="form-group"><label class="form-label">Submitted By</label>
+          <input type="text" class="form-input tracked" id="f_by" placeholder="Name / Title" oninput="track()"></div>
+        <div class="form-group"><label class="form-label">Production Area</label>
+          <select class="form-input tracked" id="f_area" onchange="track()">
+            <option value="">— Select —</option>
+            <option>Injection Molding</option><option>Extrusion</option>
+            <option>Assembly</option><option>Entire Plant</option>
+          </select></div>
+      </div>
+    </div>
+  </div>
+  <!-- 1. OTD -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#fef3c7;color:#d97706"><i class="fa-solid fa-truck-fast"></i></div>
+        <div><h3>1 · On-Time Delivery (OTD)</h3><div class="sub">Target: ≥ 95%</div></div>
+      </div>
+      <span class="rag-pill green" id="rag_otd">● Green</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">OTD %</label>
+          <div class="unit-wrap"><input type="number" step="0.1" min="0" max="100" class="form-input tracked" id="f_otd" placeholder="95.0" oninput="calcOtdRag();track()"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Orders Shipped On Time</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_otd_ontime" placeholder="0" oninput="autoOtd();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Total Orders Due</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_otd_due" placeholder="0" oninput="autoOtd();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Late Orders</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_otd_late" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+      </div>
+      <div class="form-divider">Notes</div>
+      <div class="form-group"><label class="form-label">OTD Notes / Root Cause</label>
+        <textarea class="form-input tracked" id="f_otd_notes" placeholder="Describe any late shipments and root cause…" oninput="track()"></textarea></div>
+    </div>
+  </div>
+  <!-- 2. SAFETY -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#dcfce7;color:#16a34a"><i class="fa-solid fa-shield-halved"></i></div>
+        <div><h3>2 · Safety</h3><div class="sub">Recordables · Near Misses · Target: 0 recordables</div></div>
+      </div>
+      <span class="rag-pill green" id="rag_safety">● Green</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Recordable Incidents</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_recordable" placeholder="0" oninput="calcSafetyRag();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Lost-Time Incidents</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_losttime" placeholder="0" oninput="calcSafetyRag();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Near Misses</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_nearmiss" placeholder="0" oninput="calcSafetyRag();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Days Without Incident</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_dayswithout" placeholder="0" oninput="track()"><span class="unit-label">days</span></div></div>
+        <div class="form-group"><label class="form-label">Safety Observations Filed</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_safetyobs" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Safety Meetings Held</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_safetymtg" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+      </div>
+      <div class="form-divider">Notes</div>
+      <div class="form-group"><label class="form-label">Safety Notes / Corrective Actions</label>
+        <textarea class="form-input tracked" id="f_safety_notes" placeholder="Describe incidents, near misses, root cause, and corrective actions…" oninput="track()"></textarea></div>
+    </div>
+  </div>
+  <!-- 3. OEE -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#ede9fe;color:#6d28d9"><i class="fa-solid fa-gears"></i></div>
+        <div><h3>3 · OEE — Overall Equipment Effectiveness</h3><div class="sub">Target: ≥ 85% · Availability × Performance × Quality</div></div>
+      </div>
+      <span class="rag-pill green" id="rag_oee">● Green</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Availability %</label>
+          <div class="unit-wrap"><input type="number" step="0.1" min="0" max="100" class="form-input tracked" id="f_avail" placeholder="90.0" oninput="calcOEE();track()"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Performance %</label>
+          <div class="unit-wrap"><input type="number" step="0.1" min="0" max="100" class="form-input tracked" id="f_perf" placeholder="95.0" oninput="calcOEE();track()"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Quality Rate %</label>
+          <div class="unit-wrap"><input type="number" step="0.1" min="0" max="100" class="form-input tracked" id="f_oeeq" placeholder="98.0" oninput="calcOEE();track()"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Calculated OEE</label>
+          <div class="unit-wrap"><input type="number" step="0.1" class="form-input" id="f_oee_calc" placeholder="—" readonly style="background:var(--gray100);color:var(--blue);font-weight:800"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Planned Downtime</label>
+          <div class="unit-wrap"><input type="number" step="0.5" min="0" class="form-input tracked" id="f_planned_dt" placeholder="0" oninput="track()"><span class="unit-label">hrs</span></div></div>
+        <div class="form-group"><label class="form-label">Unplanned Downtime</label>
+          <div class="unit-wrap"><input type="number" step="0.5" min="0" class="form-input tracked" id="f_unplanned_dt" placeholder="0" oninput="track()"><span class="unit-label">hrs</span></div></div>
+        <div class="form-group"><label class="form-label">Top Downtime Cause</label>
+          <select class="form-input tracked" id="f_dt_cause" onchange="track()">
+            <option value="">— Select —</option>
+            <option>Mechanical Failure</option><option>Tooling Change</option>
+            <option>Material Issue</option><option>Operator Shortage</option>
+            <option>Quality Hold</option><option>Scheduled Maintenance</option>
+            <option>Electrical / PLC</option><option>Other</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">MTBF (hrs)</label>
+          <div class="unit-wrap"><input type="number" step="0.5" min="0" class="form-input tracked" id="f_mtbf" placeholder="0" oninput="track()"><span class="unit-label">hrs</span></div></div>
+      </div>
+      <div class="form-divider">Notes</div>
+      <div class="form-group"><label class="form-label">OEE Notes / Equipment Issues</label>
+        <textarea class="form-input tracked" id="f_oee_notes" placeholder="Describe downtime events, root causes, actions taken…" oninput="track()"></textarea></div>
+    </div>
+  </div>
+  <!-- 4. 5S -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#dbeafe;color:#1d4ed8"><i class="fa-solid fa-broom"></i></div>
+        <div><h3>4 · 5S Score</h3><div class="sub">Rate each S from 1–5 · Weekly audit · Target: ≥ 20/25</div></div>
+      </div>
+      <span class="rag-pill green" id="rag_5s">● Green</span>
+    </div>
+    <div class="card-body">
+      <div class="fives-grid">
+        <div class="fives-item"><div class="fi-letter">S1</div><div class="fi-name">Sort</div><input type="range" min="1" max="5" value="3" id="fs_sort" oninput="update5S()"><div class="fi-score" id="fv_sort">3</div></div>
+        <div class="fives-item"><div class="fi-letter">S2</div><div class="fi-name">Set in Order</div><input type="range" min="1" max="5" value="3" id="fs_set" oninput="update5S()"><div class="fi-score" id="fv_set">3</div></div>
+        <div class="fives-item"><div class="fi-letter">S3</div><div class="fi-name">Shine</div><input type="range" min="1" max="5" value="3" id="fs_shine" oninput="update5S()"><div class="fi-score" id="fv_shine">3</div></div>
+        <div class="fives-item"><div class="fi-letter">S4</div><div class="fi-name">Standardize</div><input type="range" min="1" max="5" value="3" id="fs_std" oninput="update5S()"><div class="fi-score" id="fv_std">3</div></div>
+        <div class="fives-item"><div class="fi-letter">S5</div><div class="fi-name">Sustain</div><input type="range" min="1" max="5" value="3" id="fs_sus" oninput="update5S()"><div class="fi-score" id="fv_sus">3</div></div>
+      </div>
+      <div class="fives-total">
+        <div class="ft-label">Weekly 5S Total</div>
+        <div class="ft-val" id="fives_total">15</div>
+        <div class="ft-max">/ 25</div>
+        <span class="rag-pill amber" id="rag_5s_inline">▲ Below Target</span>
+      </div>
+      <div class="form-divider">Audit Notes</div>
+      <div class="form-group"><label class="form-label">5S Audit Notes / Action Items</label>
+        <textarea class="form-input tracked" id="f_5s_notes" placeholder="Describe findings, improvement actions, area-specific observations…" oninput="track()"></textarea></div>
+    </div>
+  </div>
+  <!-- 5. MWO -->
+  <div class="card">
+    <div class="card-header">
+      <div class="ch-left">
+        <div class="card-icon" style="background:#fce7f3;color:#be185d"><i class="fa-solid fa-clipboard-check"></i></div>
+        <div><h3>5 · Maintenance Work Order Adherence</h3><div class="sub">Target: ≥ 90% completion rate</div></div>
+      </div>
+      <span class="rag-pill green" id="rag_mwo">● Green</span>
+    </div>
+    <div class="card-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">WOs Planned This Week</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_mwo_planned" placeholder="0" oninput="calcMwoAdh();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">WOs Completed</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_mwo_done" placeholder="0" oninput="calcMwoAdh();track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">WOs Overdue / Carried Over</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_mwo_overdue" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Adherence % (auto-calc)</label>
+          <div class="unit-wrap"><input type="number" step="0.1" class="form-input" id="f_mwo_adh" placeholder="—" readonly style="background:var(--gray100);color:var(--blue);font-weight:800"><span class="unit-label">%</span></div></div>
+        <div class="form-group"><label class="form-label">Emergency / Reactive WOs</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_mwo_reactive" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+        <div class="form-group"><label class="form-label">Preventive WOs Completed</label>
+          <div class="unit-wrap"><input type="number" min="0" class="form-input tracked" id="f_mwo_pm" placeholder="0" oninput="track()"><span class="unit-label">#</span></div></div>
+      </div>
+      <div class="form-divider">Notes</div>
+      <div class="form-group"><label class="form-label">MWO Notes / Barriers to Completion</label>
+        <textarea class="form-input tracked" id="f_mwo_notes" placeholder="Why were WOs not completed? What is the plan to close them?" oninput="track()"></textarea></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:12px;margin-bottom:32px">
+    <button class="btn-outline" onclick="clearForm()"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+    <button class="btn-primary" style="padding:10px 24px;font-size:14px" onclick="saveEntry()">
+      <i class="fa-solid fa-floppy-disk"></i> Save Weekly Entry
+    </button>
+  </div>
+</div>
+
+<!-- ══ HISTORY ══ -->
+<div class="page" id="page-history">
+  <div class="sec-hdr">
+    <h2>Entry History</h2>
+    <button class="btn-outline" style="color:var(--red);border-color:var(--red)" onclick="clearAll()">
+      <i class="fa-solid fa-trash"></i> Clear All
+    </button>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:0;overflow-x:auto">
+      <table class="kpi-table">
+        <thead>
+          <tr>
+            <th>Week</th><th>Area</th>
+            <th><i class="fa-solid fa-truck-fast" style="color:#d97706"></i> OTD</th>
+            <th><i class="fa-solid fa-shield-halved" style="color:#16a34a"></i> Rec.</th>
+            <th><i class="fa-solid fa-triangle-exclamation" style="color:#d97706"></i> Near Miss</th>
+            <th><i class="fa-solid fa-gears" style="color:#6d28d9"></i> OEE</th>
+            <th><i class="fa-solid fa-broom" style="color:#1d4ed8"></i> 5S</th>
+            <th><i class="fa-solid fa-clipboard-check" style="color:#be185d"></i> MWO Adh.</th>
+            <th>Overall</th><th>By</th>
+          </tr>
+        </thead>
+        <tbody id="histBody">
+          <tr><td colspan="10" style="text-align:center;color:var(--gray400);padding:40px">No entries yet.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ══ TARGETS ══ -->
+<div class="page" id="page-targets">
+  <div class="sec-hdr">
+    <h2>KPI Targets &amp; RAG Thresholds</h2>
+    <button class="btn-primary" onclick="saveTargets()"><i class="fa-solid fa-floppy-disk"></i> Save Targets</button>
+  </div>
+  <div style="margin-bottom:14px;font-size:13px;color:var(--gray600)">These thresholds drive the Green / Amber / Red indicators across all tiles and charts.</div>
+  <div class="target-grid">
+    <div class="target-card">
+      <div class="tc-label"><i class="fa-solid fa-truck-fast" style="color:#d97706"></i> On-Time Delivery (%)</div>
+      <div class="tc-inputs">
+        <div class="tc-field"><label>● Green ≥</label><input type="number" id="t_otd_g" placeholder="95"></div>
+        <div class="tc-field"><label>▲ Amber ≥</label><input type="number" id="t_otd_a" placeholder="90"></div>
+        <div class="tc-field"><label>✕ Red &lt;</label><input type="number" id="t_otd_r" placeholder="90"></div>
+      </div>
+    </div>
+    <div class="target-card">
+      <div class="tc-label"><i class="fa-solid fa-gears" style="color:#6d28d9"></i> OEE (%)</div>
+      <div class="tc-inputs">
+        <div class="tc-field"><label>● Green ≥</label><input type="number" id="t_oee_g" placeholder="85"></div>
+        <div class="tc-field"><label>▲ Amber ≥</label><input type="number" id="t_oee_a" placeholder="70"></div>
+        <div class="tc-field"><label>✕ Red &lt;</label><input type="number" id="t_oee_r" placeholder="70"></div>
+      </div>
+    </div>
+    <div class="target-card">
+      <div class="tc-label"><i class="fa-solid fa-broom" style="color:#1d4ed8"></i> 5S Score (/25)</div>
+      <div class="tc-inputs">
+        <div class="tc-field"><label>● Green ≥</label><input type="number" id="t_5s_g" placeholder="20"></div>
+        <div class="tc-field"><label>▲ Amber ≥</label><input type="number" id="t_5s_a" placeholder="15"></div>
+        <div class="tc-field"><label>✕ Red &lt;</label><input type="number" id="t_5s_r" placeholder="15"></div>
+      </div>
+    </div>
+    <div class="target-card">
+      <div class="tc-label"><i class="fa-solid fa-clipboard-check" style="color:#be185d"></i> MWO Adherence (%)</div>
+      <div class="tc-inputs">
+        <div class="tc-field"><label>● Green ≥</label><input type="number" id="t_mwo_g" placeholder="90"></div>
+        <div class="tc-field"><label>▲ Amber ≥</label><input type="number" id="t_mwo_a" placeholder="75"></div>
+        <div class="tc-field"><label>✕ Red &lt;</label><input type="number" id="t_mwo_r" placeholder="75"></div>
+      </div>
+    </div>
+    <div class="target-card" style="grid-column:span 2">
+      <div class="tc-label"><i class="fa-solid fa-shield-halved" style="color:#16a34a"></i> Safety Thresholds (fixed)</div>
+      <div style="font-size:13px;color:var(--gray600);line-height:1.9">
+        <b style="color:var(--green)">● Green:</b> 0 recordables, near misses ≤ 2 &nbsp;|&nbsp;
+        <b style="color:var(--amber)">▲ Amber:</b> 0 recordables, near misses &gt; 2 &nbsp;|&nbsp;
+        <b style="color:var(--red)">✕ Red:</b> Any recordable or lost-time incident
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+<div id="toast-container"></div>
+
+<script>
+/* ── STORAGE ── */
+const SK='cmi_kpi6_v3',TK='cmi_kpi6_v3_t';
+const load=()=>{try{return JSON.parse(localStorage.getItem(SK)||'[]');}catch{return [];}};
+const save=a=>localStorage.setItem(SK,JSON.stringify(a));
+const loadT=()=>{
+  const d={otd_g:95,otd_a:90,oee_g:85,oee_a:70,fives_g:20,fives_a:15,mwo_g:90,mwo_a:75};
+  try{return Object.assign(d,JSON.parse(localStorage.getItem(TK)||'{}'));}catch{return d;}
+};
+
+/* ── NAV ── */
+let prevPage='dashboard';
+function showPage(n,el){
+  prevPage= document.querySelector('.page.active')?.id?.replace('page-','')||'dashboard';
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+n).classList.add('active');
+  const T={dashboard:'KPI Dashboard',entry:'Weekly KPI Entry',history:'Entry History',targets:'KPI Targets',detail:'KPI Detail'};
+  document.getElementById('pageTitle').textContent=T[n]||n;
+  // Back button only on detail page
+  const btn=document.getElementById('btnBack');
+  btn.classList.toggle('visible', n==='detail');
+  document.getElementById('weekBadge').style.display=n==='detail'?'none':'flex';
+  if(el){document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));el.classList.add('active');}
+  if(n==='dashboard'){renderDash();}
+  if(n==='history'){renderHist();}
+  if(n==='targets'){loadTgtForm();}
+}
+function goBack(){
+  showPage('dashboard',document.querySelector('nav a'));
+  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('nav a')[0].classList.add('active');
+}
+function goEntry(){
+  showPage('entry',null);
+  document.querySelectorAll('nav a').forEach(a=>a.classList.remove('active'));
+  document.querySelectorAll('nav a')[1].classList.add('active');
+}
+
+/* ── WEEK LABEL ── */
+function wkLabel(d){
+  if(!d)return'—';
+  const s=new Date(d+'T00:00:00'),e=new Date(s);e.setDate(s.getDate()+6);
+  const f=x=>x.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return`${f(s)} – ${f(e)}, ${s.getFullYear()}`;
+}
+function updateWeekLabel(){
+  document.getElementById('weekLabel').textContent=wkLabel(document.getElementById('f_week').value);
+}
+
+/* ── COMPLETION ── */
+function track(){
+  const els=document.querySelectorAll('#page-entry .tracked');
+  let f=0;
+  els.forEach(i=>{
+    if((i.tagName==='INPUT'||i.tagName==='TEXTAREA')&&i.value.trim())f++;
+    if(i.tagName==='SELECT'&&i.value)f++;
+  });
+  const p=Math.round(f/els.length*100);
+  document.getElementById('progFill').style.width=p+'%';
+  document.getElementById('progLabel').textContent=p+'% complete';
+}
+
+/* ── RAG ── */
+function setPill(id,s){
+  const L={green:'● Green',amber:'▲ Amber',red:'✕ Red'};
+  const el=document.getElementById(id);if(!el)return;
+  el.className='rag-pill '+s;el.textContent=L[s];
+}
+function calcOtdRag(){const t=loadT(),v=parseFloat(document.getElementById('f_otd').value);setPill('rag_otd',isNaN(v)?'green':v>=t.otd_g?'green':v>=t.otd_a?'amber':'red');}
+function calcSafetyRag(){
+  const r=parseFloat(document.getElementById('f_recordable').value)||0;
+  const lt=parseFloat(document.getElementById('f_losttime').value)||0;
+  const nm=parseFloat(document.getElementById('f_nearmiss').value)||0;
+  setPill('rag_safety',lt>0||r>0?'red':nm>2?'amber':'green');
+}
+function calcOEE(){
+  const a=parseFloat(document.getElementById('f_avail').value)||0;
+  const p=parseFloat(document.getElementById('f_perf').value)||0;
+  const q=parseFloat(document.getElementById('f_oeeq').value)||0;
+  const oee=a&&p&&q?+(a*p*q/10000).toFixed(1):null;
+  if(oee!==null)document.getElementById('f_oee_calc').value=oee;
+  const t=loadT();
+  setPill('rag_oee',oee===null?'green':oee>=t.oee_g?'green':oee>=t.oee_a?'amber':'red');
+}
+function calcMwoAdh(){
+  const pl=parseFloat(document.getElementById('f_mwo_planned').value)||0;
+  const dn=parseFloat(document.getElementById('f_mwo_done').value)||0;
+  const adh=pl>0?+(dn/pl*100).toFixed(1):null;
+  if(adh!==null)document.getElementById('f_mwo_adh').value=adh;
+  const t=loadT();
+  setPill('rag_mwo',adh===null?'green':adh>=t.mwo_g?'green':adh>=t.mwo_a?'amber':'red');
+}
+function autoOtd(){
+  const on=parseFloat(document.getElementById('f_otd_ontime').value)||0;
+  const due=parseFloat(document.getElementById('f_otd_due').value)||0;
+  if(on>0&&due>0){document.getElementById('f_otd').value=+(on/due*100).toFixed(1);calcOtdRag();}
+}
+function update5S(){
+  const keys=['sort','set','shine','std','sus'];
+  const vals=keys.map(k=>parseInt(document.getElementById('fs_'+k).value)||1);
+  keys.forEach((k,i)=>document.getElementById('fv_'+k).textContent=vals[i]);
+  const total=vals.reduce((a,b)=>a+b,0);
+  document.getElementById('fives_total').textContent=total;
+  const t=loadT(),s=total>=t.fives_g?'green':total>=t.fives_a?'amber':'red';
+  setPill('rag_5s',s);
+  const il=document.getElementById('rag_5s_inline');
+  if(il){il.className='rag-pill '+s;il.textContent=s==='green'?'● At Target':s==='amber'?'▲ Below Target':'✕ Action Required';}
+  track();
+}
+
+/* ── SAVE ENTRY ── */
+function readPill(id){const el=document.getElementById(id);if(!el)return'green';if(el.classList.contains('red'))return'red';if(el.classList.contains('amber'))return'amber';return'green';}
+function saveEntry(){
+  const week=document.getElementById('f_week').value;
+  if(!week){toast('Please select a week start date.','error');return;}
+  const a=parseFloat(document.getElementById('f_avail').value)||0,p=parseFloat(document.getElementById('f_perf').value)||0,q=parseFloat(document.getElementById('f_oeeq').value)||0;
+  const oee=a&&p&&q?+(a*p*q/10000).toFixed(1):null;
+  const pl=parseFloat(document.getElementById('f_mwo_planned').value)||0,dn=parseFloat(document.getElementById('f_mwo_done').value)||0;
+  const mwoAdh=pl>0?+(dn/pl*100).toFixed(1):null;
+  const fVals=['sort','set','shine','std','sus'].map(k=>parseInt(document.getElementById('fs_'+k).value)||1);
+  const entry={
+    id:Date.now(),week,area:document.getElementById('f_area').value,by:document.getElementById('f_by').value,
+    otd:{pct:parseFloat(document.getElementById('f_otd').value)||null,ontime:+document.getElementById('f_otd_ontime').value||0,due:+document.getElementById('f_otd_due').value||0,late:+document.getElementById('f_otd_late').value||0,notes:document.getElementById('f_otd_notes').value,rag:readPill('rag_otd')},
+    safety:{recordable:+document.getElementById('f_recordable').value||0,losttime:+document.getElementById('f_losttime').value||0,nearmiss:+document.getElementById('f_nearmiss').value||0,dayswithout:+document.getElementById('f_dayswithout').value||null,obs:+document.getElementById('f_safetyobs').value||0,mtg:+document.getElementById('f_safetymtg').value||0,notes:document.getElementById('f_safety_notes').value,rag:readPill('rag_safety')},
+    oee:{availability:a||null,performance:p||null,quality:q||null,oee,planned_dt:+document.getElementById('f_planned_dt').value||0,unplanned_dt:+document.getElementById('f_unplanned_dt').value||0,cause:document.getElementById('f_dt_cause').value,mtbf:+document.getElementById('f_mtbf').value||null,notes:document.getElementById('f_oee_notes').value,rag:readPill('rag_oee')},
+    fives:{scores:fVals,total:fVals.reduce((a,b)=>a+b,0),notes:document.getElementById('f_5s_notes').value,rag:readPill('rag_5s')},
+    mwo:{planned:pl,done:dn,overdue:+document.getElementById('f_mwo_overdue').value||0,adh:mwoAdh,reactive:+document.getElementById('f_mwo_reactive').value||0,pm:+document.getElementById('f_mwo_pm').value||0,notes:document.getElementById('f_mwo_notes').value,rag:readPill('rag_mwo')},
+  };
+  const entries=load();
+  const idx=entries.findIndex(e=>e.week===week&&e.area===entry.area);
+  if(idx>=0)entries.splice(idx,1,entry);else entries.unshift(entry);
+  save(entries);
+  toast('Weekly KPI entry saved!','success');
+}
+function clearForm(){
+  document.querySelectorAll('#page-entry .tracked').forEach(el=>el.value='');
+  document.getElementById('f_oee_calc').value='';document.getElementById('f_mwo_adh').value='';
+  ['sort','set','shine','std','sus'].forEach(k=>{document.getElementById('fs_'+k).value=3;document.getElementById('fv_'+k).textContent=3;});
+  document.getElementById('fives_total').textContent=15;
+  ['rag_otd','rag_safety','rag_oee','rag_5s','rag_mwo'].forEach(id=>setPill(id,'green'));
+  const il=document.getElementById('rag_5s_inline');if(il){il.className='rag-pill amber';il.textContent='▲ Below Target';}
+  document.getElementById('progFill').style.width='0%';document.getElementById('progLabel').textContent='0% complete';
+  document.getElementById('weekLabel').textContent='—';
+}
+
+/* ── DASHBOARD RENDER ── */
+function renderDash(){
+  const entries=load();const latest=entries[0];
+  const grid=document.getElementById('heroGrid');
+  if(!latest){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--gray400)">No data yet — use <b>Weekly Entry</b> to add your first week.</div>`;
+    return;
+  }
+  document.getElementById('dashWeekBadge').textContent='Week of '+wkLabel(latest.week);
+  document.getElementById('weekLabel').textContent=wkLabel(latest.week);
+  const t=loadT();
+  const tiles=[
+    {key:'otd',   icon:'fa-truck-fast',        bg:'#fef3c7',ic:'#d97706',label:'On-Time Delivery', val:(latest.otd.pct!=null?latest.otd.pct+'%':'—'),rag:latest.otd.rag,    goal:'Target ≥ '+t.otd_g+'%', met:latest.otd.pct>=t.otd_g},
+    {key:'rec',   icon:'fa-shield-halved',      bg:'#dcfce7',ic:'#16a34a',label:'Safety Recordables',val:latest.safety.recordable,                     rag:latest.safety.rag, goal:'Target: 0',              met:latest.safety.recordable===0},
+    {key:'nm',    icon:'fa-triangle-exclamation',bg:'#fef3c7',ic:'#d97706',label:'Near Misses',      val:latest.safety.nearmiss,                        rag:latest.safety.nearmiss>2?'red':latest.safety.nearmiss>0?'amber':'green',goal:'Target: 0',met:latest.safety.nearmiss===0},
+    {key:'oee',   icon:'fa-gears',              bg:'#ede9fe',ic:'#6d28d9',label:'OEE',               val:(latest.oee.oee!=null?latest.oee.oee+'%':'—'), rag:latest.oee.rag,    goal:'Target ≥ '+t.oee_g+'%', met:latest.oee.oee>=t.oee_g},
+    {key:'fives', icon:'fa-broom',              bg:'#dbeafe',ic:'#1d4ed8',label:'5S Score',           val:latest.fives.total+'/25',                      rag:latest.fives.rag,  goal:'Target ≥ '+t.fives_g+'/25',met:latest.fives.total>=t.fives_g},
+    {key:'mwo',   icon:'fa-clipboard-check',    bg:'#fce7f3',ic:'#be185d',label:'MWO Adherence',     val:(latest.mwo.adh!=null?latest.mwo.adh+'%':'—'), rag:latest.mwo.rag,    goal:'Target ≥ '+t.mwo_g+'%', met:latest.mwo.adh>=t.mwo_g},
+  ];
+  grid.innerHTML=tiles.map(c=>`
+    <div class="hero-card rag-${c.rag}" onclick="openDetail('${c.key}')">
+      <div class="hero-icon"><i class="fa-solid ${c.icon}"></i></div>
+      <div class="hc-label">${c.label}</div>
+      <div class="hc-val">${c.val}</div>
+      <div class="hc-goal ${c.met===true?'goal-met':c.met===false?'goal-miss':'goal-warn'}">${c.goal}</div>
+      <div class="click-hint"><i class="fa-solid fa-expand"></i> View Full Detail</div>
+    </div>`).join('');
+  renderCharts(entries);renderOEEBreakdown(latest);
+}
+
+/* ── CHARTS ── */
+let CI={};
+function kc(id){if(CI[id]){CI[id].destroy();delete CI[id];}}
+function l12(e){return[...e].slice(0,12).reverse();}
+function xA(){return{ticks:{font:{size:11},color:'#94a3b8',maxRotation:40},grid:{color:'#f1f5f9'}};}
+function yA(u){return{ticks:{font:{size:11},color:'#94a3b8',callback:v=>v+(u||'')},grid:{color:'#f1f5f9'}};}
+function baseOpts(u,mn,mx){
+  return{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:12},color:'#475569',boxWidth:14}},tooltip:{backgroundColor:'#1e293b',titleColor:'#f1f5f9',bodyColor:'#cbd5e1',padding:10,cornerRadius:8}},
+    scales:{x:xA(),y:{...yA(u),...(mn!=null?{suggestedMin:mn}:{}),...(mx!=null?{suggestedMax:mx}:{})}}};
+}
+function renderCharts(entries){
+  const d=l12(entries),lbl=d.map(e=>wkLabel(e.week).split(',')[0]),t=loadT();
+  kc('ch_otd');CI['ch_otd']=new Chart(document.getElementById('ch_otd'),{type:'line',data:{labels:lbl,datasets:[
+    {label:'OTD %',data:d.map(e=>e.otd.pct),borderColor:'#d97706',backgroundColor:'rgba(217,119,6,.1)',fill:true,tension:.35,pointBackgroundColor:d.map(e=>e.otd.pct>=t.otd_g?'#16a34a':e.otd.pct>=t.otd_a?'#d97706':'#dc2626'),pointRadius:5},
+    {label:'Target '+t.otd_g+'%',data:d.map(()=>t.otd_g),borderColor:'#16a34a',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false},
+  ]},options:baseOpts('%',70,100)});
+  kc('ch_safety');CI['ch_safety']=new Chart(document.getElementById('ch_safety'),{type:'bar',data:{labels:lbl,datasets:[
+    {label:'Recordables',data:d.map(e=>e.safety.recordable||0),backgroundColor:'rgba(220,38,38,.8)',borderRadius:5},
+    {label:'Near Misses',data:d.map(e=>e.safety.nearmiss||0),backgroundColor:'rgba(217,119,6,.7)',borderRadius:5},
+  ]},options:{...baseOpts('#',0,null),scales:{x:xA(),y:{...yA('#'),min:0,ticks:{stepSize:1}}}}});
+  kc('ch_oee');CI['ch_oee']=new Chart(document.getElementById('ch_oee'),{type:'line',data:{labels:lbl,datasets:[
+    {label:'OEE %',data:d.map(e=>e.oee.oee),borderColor:'#7c3aed',backgroundColor:'rgba(124,58,237,.1)',fill:true,tension:.35,pointBackgroundColor:d.map(e=>e.oee.oee>=t.oee_g?'#16a34a':e.oee.oee>=t.oee_a?'#d97706':'#dc2626'),pointRadius:5},
+    {label:'Target '+t.oee_g+'%',data:d.map(()=>t.oee_g),borderColor:'#16a34a',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false},
+  ]},options:baseOpts('%',50,100)});
+  kc('ch_5s');CI['ch_5s']=new Chart(document.getElementById('ch_5s'),{type:'bar',data:{labels:lbl,datasets:[
+    {label:'5S Score',data:d.map(e=>e.fives.total||0),backgroundColor:d.map(e=>e.fives.total>=t.fives_g?'rgba(22,163,74,.75)':e.fives.total>=t.fives_a?'rgba(217,119,6,.75)':'rgba(220,38,38,.75)'),borderRadius:5},
+    {label:'Target '+t.fives_g+'/25',data:d.map(()=>t.fives_g),type:'line',borderColor:'#16a34a',borderDash:[6,4],borderWidth:1.5,pointRadius:0,fill:false},
+  ]},options:{...baseOpts('/25',0,25),scales:{x:xA(),y:{...yA('/25'),min:0,max:25}}}});
+  kc('ch_mwo');CI['ch_mwo']=new Chart(document.getElementById('ch_mwo'),{type:'bar',data:{labels:lbl,datasets:[
+    {label:'WOs Planned',data:d.map(e=>e.mwo.planned||0),backgroundColor:'rgba(59,130,246,.35)',borderRadius:5,yAxisID:'y'},
+    {label:'WOs Completed',data:d.map(e=>e.mwo.done||0),backgroundColor:'rgba(22,163,74,.75)',borderRadius:5,yAxisID:'y'},
+    {label:'Adherence %',data:d.map(e=>e.mwo.adh),type:'line',borderColor:'#be185d',pointRadius:5,fill:false,tension:.35,yAxisID:'y2',pointBackgroundColor:d.map(e=>e.mwo.adh>=t.mwo_g?'#16a34a':e.mwo.adh>=t.mwo_a?'#d97706':'#dc2626')},
+  ]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{labels:{font:{size:12},color:'#475569',boxWidth:14}},tooltip:{backgroundColor:'#1e293b',titleColor:'#f1f5f9',bodyColor:'#cbd5e1',padding:10,cornerRadius:8}},
+    scales:{x:xA(),y:{...yA('#'),position:'left',min:0},y2:{...yA('%'),position:'right',min:0,max:100,grid:{display:false}}}}});
+}
+function renderOEEBreakdown(e){
+  const o=e.oee,avail=o.availability||0,perf=o.performance||0,qual=o.quality||0,oee=o.oee||(avail*perf*qual/10000);
+  const t=loadT(),color=oee>=t.oee_g?'#16a34a':oee>=t.oee_a?'#d97706':'#dc2626';
+  kc('oeeGauge');
+  CI['oeeGauge']=new Chart(document.getElementById('oeeGauge'),{type:'doughnut',
+    data:{datasets:[{data:[Math.min(oee/100,1),1-Math.min(oee/100,1)],backgroundColor:[color,'#f1f5f9'],borderWidth:0,circumference:270,rotation:225}]},
+    plugins:[{id:'ct',afterDraw(c){const{ctx,chartArea:{top,bottom,left,right}}=c;const cx=(left+right)/2,cy=(top+bottom)/2+18;ctx.save();ctx.font='bold 24px Segoe UI';ctx.fillStyle=color;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText((oee?oee.toFixed(1):'—')+'%',cx,cy);ctx.restore();}}],
+    options:{responsive:false,plugins:{legend:{display:false},tooltip:{enabled:false}},cutout:'72%'}});
+  document.getElementById('oeeBreakdown').innerHTML=[{n:'Availability',v:avail,c:'#3b82f6'},{n:'Performance',v:perf,c:'#7c3aed'},{n:'Quality',v:qual,c:'#16a34a'}].map(m=>`
+    <div style="background:var(--gray50);border-radius:10px;padding:14px;border:1px solid var(--gray200)">
+      <div style="font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase">${m.n}</div>
+      <div style="font-size:28px;font-weight:800;color:${m.c};margin:4px 0">${m.v?m.v.toFixed(1)+'%':'—'}</div>
+      <div style="background:var(--gray200);border-radius:4px;height:6px;overflow:hidden"><div style="width:${m.v}%;height:100%;background:${m.c};border-radius:4px"></div></div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════════
+   FULL-PAGE DETAIL VIEW
+══════════════════════════════════════════════════ */
+const DCFG={
+  otd:{title:'On-Time Delivery (OTD)',sub:'Target ≥ 95% · Weekly shipment performance',icon:'fa-truck-fast',bg:'#fef3c7',ic:'#d97706',
+    getData:e=>e.otd.pct,label:'OTD %',unit:'%',target:()=>loadT().otd_g,chartType:'line',
+    chartColor:'#d97706',chartBg:'rgba(217,119,6,.12)',ptColor:e=>e.otd.pct>=loadT().otd_g?'#16a34a':e.otd.pct>=loadT().otd_a?'#d97706':'#dc2626',
+    scaleMin:70,scaleMax:100,
+    stats:d=>{const v=d.filter(e=>e.otd.pct!=null).map(e=>e.otd.pct);const t=loadT();const avg=v.length?+(v.reduce((a,b)=>a+b)/v.length).toFixed(1):null;
+      return[{l:'12-Week Avg',v:avg!=null?avg+'%':'—',cls:avg>=t.otd_g?'ds-green':avg>=t.otd_a?'ds-amber':'ds-red',n:'average OTD'},
+             {l:'Best Week',v:v.length?Math.max(...v).toFixed(1)+'%':'—',cls:'ds-blue',n:'highest recorded'},
+             {l:'Worst Week',v:v.length?Math.min(...v).toFixed(1)+'%':'—',cls:Math.min(...v)<t.otd_a?'ds-red':'ds-amber',n:'lowest recorded'}];},
+    cols:['Week','Area','OTD %','On-Time','Due','Late','Status'],
+    row:e=>[wkLabel(e.week),e.area||'—',e.otd.pct!=null?e.otd.pct+'%':'—',e.otd.ontime||0,e.otd.due||0,e.otd.late||0,ragBadge(e.otd.rag)],
+    editFields:[{key:'otd.pct',label:'OTD %',step:'0.1'},{key:'otd.ontime',label:'On-Time #'},{key:'otd.due',label:'Total Due'},{key:'otd.late',label:'Late #'}],
+    recalc:(entry)=>{const t=loadT();if(entry.otd.due>0&&entry.otd.ontime>0)entry.otd.pct=+(entry.otd.ontime/entry.otd.due*100).toFixed(1);entry.otd.rag=entry.otd.pct>=t.otd_g?'green':entry.otd.pct>=t.otd_a?'amber':'red';}},
+  rec:{title:'Safety — Recordable Incidents',sub:'Target: 0 recordables · OSHA recordable events',icon:'fa-shield-halved',bg:'#dcfce7',ic:'#16a34a',
+    getData:e=>e.safety.recordable,label:'Recordables',unit:'',target:()=>0,chartType:'bar',
+    chartColor:'rgba(220,38,38,.8)',chartBg:'rgba(220,38,38,.1)',ptColor:()=>'#dc2626',
+    scaleMin:0,scaleMax:null,
+    stats:d=>{const tot=d.reduce((a,e)=>a+(e.safety.recordable||0),0);const clean=d.filter(e=>e.safety.recordable===0).length;const streak=d[d.length-1]?.safety.dayswithout||0;
+      return[{l:'Total (12-wk)',v:tot,cls:tot===0?'ds-green':'ds-red',n:'recordable incidents'},
+             {l:'Clean Weeks',v:clean+' / '+d.length,cls:clean===d.length?'ds-green':clean>=d.length*.8?'ds-amber':'ds-red',n:'zero recordables'},
+             {l:'Days Clean',v:streak,cls:streak>=30?'ds-green':streak>=7?'ds-amber':'ds-red',n:'current streak'}];},
+    cols:['Week','Area','Recordables','Lost-Time','Near Misses','Days Clean','Status'],
+    row:e=>[wkLabel(e.week),e.area||'—',e.safety.recordable,e.safety.losttime||0,e.safety.nearmiss||0,e.safety.dayswithout||0,ragBadge(e.safety.rag)],
+    editFields:[{key:'safety.recordable',label:'Recordables'},{key:'safety.losttime',label:'Lost-Time'},{key:'safety.nearmiss',label:'Near Misses'},{key:'safety.dayswithout',label:'Days Clean'}],
+    recalc:(entry)=>{entry.safety.rag=entry.safety.losttime>0||entry.safety.recordable>0?'red':entry.safety.nearmiss>2?'amber':'green';}},
+  nm:{title:'Safety — Near Misses',sub:'Target: 0 · Leading indicator for incident prevention',icon:'fa-triangle-exclamation',bg:'#fef3c7',ic:'#d97706',
+    getData:e=>e.safety.nearmiss,label:'Near Misses',unit:'',target:()=>0,chartType:'bar',
+    chartColor:'rgba(217,119,6,.8)',chartBg:'rgba(217,119,6,.1)',ptColor:()=>'#d97706',
+    scaleMin:0,scaleMax:null,
+    stats:d=>{const tot=d.reduce((a,e)=>a+(e.safety.nearmiss||0),0);const clear=d.filter(e=>e.safety.nearmiss===0).length;const obs=d.reduce((a,e)=>a+(e.safety.obs||0),0);
+      return[{l:'Total (12-wk)',v:tot,cls:tot===0?'ds-green':tot<=5?'ds-amber':'ds-red',n:'near misses'},
+             {l:'Clear Weeks',v:clear+' / '+d.length,cls:clear===d.length?'ds-green':'ds-amber',n:'no near misses'},
+             {l:'Obs. Filed',v:obs,cls:'ds-blue',n:'safety observations'}];},
+    cols:['Week','Area','Near Misses','Recordables','Observations','Meetings','Status'],
+    row:e=>[wkLabel(e.week),e.area||'—',e.safety.nearmiss||0,e.safety.recordable||0,e.safety.obs||0,e.safety.mtg||0,ragBadge(e.safety.rag)],
+    editFields:[{key:'safety.nearmiss',label:'Near Misses'},{key:'safety.recordable',label:'Recordables'},{key:'safety.obs',label:'Observations'},{key:'safety.mtg',label:'Meetings'}],
+    recalc:(entry)=>{entry.safety.rag=entry.safety.losttime>0||entry.safety.recordable>0?'red':entry.safety.nearmiss>2?'amber':'green';}},
+  oee:{title:'OEE — Overall Equipment Effectiveness',sub:'Target ≥ 85% (world-class) · Availability × Performance × Quality',icon:'fa-gears',bg:'#ede9fe',ic:'#6d28d9',
+    getData:e=>e.oee.oee,label:'OEE %',unit:'%',target:()=>loadT().oee_g,chartType:'line',
+    chartColor:'#7c3aed',chartBg:'rgba(124,58,237,.12)',ptColor:e=>e.oee.oee>=loadT().oee_g?'#16a34a':e.oee.oee>=loadT().oee_a?'#d97706':'#dc2626',
+    scaleMin:50,scaleMax:100,
+    stats:d=>{const v=d.filter(e=>e.oee.oee!=null).map(e=>e.oee.oee);const t=loadT();const avg=v.length?+(v.reduce((a,b)=>a+b)/v.length).toFixed(1):null;const dt=d.reduce((a,e)=>a+(e.oee.unplanned_dt||0),0);
+      return[{l:'12-Week Avg OEE',v:avg!=null?avg+'%':'—',cls:avg>=t.oee_g?'ds-green':avg>=t.oee_a?'ds-amber':'ds-red',n:'average OEE'},
+             {l:'Unplanned DT',v:dt+'h',cls:dt===0?'ds-green':dt<20?'ds-amber':'ds-red',n:'12-week total hours'},
+             {l:'This Week',v:d[d.length-1]?.oee.oee!=null?d[d.length-1].oee.oee+'%':'—',cls:'ds-blue',n:'current week'}];},
+    cols:['Week','Area','OEE %','Avail %','Perf %','Quality %','Unplan DT','Cause'],
+    row:e=>[wkLabel(e.week),e.area||'—',e.oee.oee!=null?e.oee.oee+'%':'—',(e.oee.availability||'—')+'%',(e.oee.performance||'—')+'%',(e.oee.quality||'—')+'%',(e.oee.unplanned_dt||0)+'h',e.oee.cause||'—'],
+    editFields:[{key:'oee.availability',label:'Availability %',step:'0.1'},{key:'oee.performance',label:'Performance %',step:'0.1'},{key:'oee.quality',label:'Quality %',step:'0.1'},{key:'oee.unplanned_dt',label:'Unplan DT hrs',step:'0.5'}],
+    recalc:(entry)=>{const t=loadT();if(entry.oee.availability&&entry.oee.performance&&entry.oee.quality)entry.oee.oee=+(entry.oee.availability*entry.oee.performance*entry.oee.quality/10000).toFixed(1);entry.oee.rag=entry.oee.oee>=t.oee_g?'green':entry.oee.oee>=t.oee_a?'amber':'red';}},
+  fives:{title:'5S Score',sub:'Target ≥ 20/25 · Sort · Set · Shine · Standardize · Sustain',icon:'fa-broom',bg:'#dbeafe',ic:'#1d4ed8',
+    getData:e=>e.fives.total,label:'5S Score',unit:'/25',target:()=>loadT().fives_g,chartType:'bar',
+    chartColor:'rgba(29,78,216,.7)',chartBg:'rgba(29,78,216,.1)',ptColor:()=>'#1d4ed8',
+    scaleMin:0,scaleMax:25,
+    stats:d=>{const v=d.map(e=>e.fives.total||0);const t=loadT();const avg=v.length?+(v.reduce((a,b)=>a+b)/v.length).toFixed(1):null;const atTgt=d.filter(e=>e.fives.total>=t.fives_g).length;
+      return[{l:'12-Week Avg',v:avg!=null?avg+'/25':'—',cls:avg>=t.fives_g?'ds-green':avg>=t.fives_a?'ds-amber':'ds-red',n:'average score'},
+             {l:'At Target',v:atTgt+' / '+d.length,cls:atTgt===d.length?'ds-green':atTgt>=d.length*.7?'ds-amber':'ds-red',n:'weeks ≥ '+t.fives_g},
+             {l:'This Week',v:(d[d.length-1]?.fives.total||0)+'/25',cls:'ds-blue',n:'current score'}];},
+    cols:['Week','Area','Total','Sort','Set in Order','Shine','Standardize','Sustain','Status'],
+    row:e=>[wkLabel(e.week),e.area||'—',e.fives.total+'/25',...(e.fives.scores||[0,0,0,0,0]),ragBadge(e.fives.rag)],
+    editFields:[{key:'fives.scores.0',label:'S1 Sort (1-5)',min:'1',max:'5'},{key:'fives.scores.1',label:'S2 Set (1-5)',min:'1',max:'5'},{key:'fives.scores.2',label:'S3 Shine (1-5)',min:'1',max:'5'},{key:'fives.scores.3',label:'S4 Std (1-5)',min:'1',max:'5'},{key:'fives.scores.4',label:'S5 Sustain (1-5)',min:'1',max:'5'}],
+    recalc:(entry)=>{const t=loadT();entry.fives.total=(entry.fives.scores||[]).reduce((a,b)=>a+b,0);entry.fives.rag=entry.fives.total>=t.fives_g?'green':entry.fives.total>=t.fives_a?'amber':'red';}},
+  mwo:{title:'Maintenance Work Order Adherence',sub:'Target ≥ 90% · WOs completed vs. planned',icon:'fa-clipboard-check',bg:'#fce7f3',ic:'#be185d',
+    getData:e=>e.mwo.adh,label:'Adherence %',unit:'%',target:()=>loadT().mwo_g,chartType:'line',
+    chartColor:'#be185d',chartBg:'rgba(190,24,93,.12)',ptColor:e=>e.mwo.adh>=loadT().mwo_g?'#16a34a':e.mwo.adh>=loadT().mwo_a?'#d97706':'#dc2626',
+    scaleMin:50,scaleMax:100,
+    stats:d=>{const v=d.filter(e=>e.mwo.adh!=null).map(e=>e.mwo.adh);const t=loadT();const avg=v.length?+(v.reduce((a,b)=>a+b)/v.length).toFixed(1):null;const react=d.reduce((a,e)=>a+(e.mwo.reactive||0),0);
+      return[{l:'12-Week Avg',v:avg!=null?avg+'%':'—',cls:avg>=t.mwo_g?'ds-green':avg>=t.mwo_a?'ds-amber':'ds-red',n:'adherence rate'},
+             {l:'Reactive WOs',v:react,cls:react===0?'ds-green':react<10?'ds-amber':'ds-red',n:'12-week total'},
+             {l:'This Week',v:(d[d.length-1]?.mwo.adh||'—')+'%',cls:'ds-blue',n:'current adherence'}];},
+    cols:['Week','Area','Adherence','Planned','Completed','Overdue','Reactive','PM Done','Status'],
+    row:e=>[wkLabel(e.week),e.area||'—',(e.mwo.adh!=null?e.mwo.adh+'%':'—'),e.mwo.planned||0,e.mwo.done||0,e.mwo.overdue||0,e.mwo.reactive||0,e.mwo.pm||0,ragBadge(e.mwo.rag)],
+    editFields:[{key:'mwo.planned',label:'WOs Planned'},{key:'mwo.done',label:'WOs Completed'},{key:'mwo.overdue',label:'Overdue'},{key:'mwo.reactive',label:'Reactive WOs'},{key:'mwo.pm',label:'PM Completed'}],
+    recalc:(entry)=>{const t=loadT();if(entry.mwo.planned>0)entry.mwo.adh=+(entry.mwo.done/entry.mwo.planned*100).toFixed(1);entry.mwo.rag=entry.mwo.adh>=t.mwo_g?'green':entry.mwo.adh>=t.mwo_a?'amber':'red';}},
+};
+
+let detailKey=null,detailChart=null;
+
+function openDetail(key){
+  const cfg=DCFG[key]; if(!cfg)return;
+  detailKey=key;
+  const entries=load(),d=l12(entries),t=loadT();
+  const lbl=d.map(e=>wkLabel(e.week).split(',')[0]);
+  const vals=d.map(e=>cfg.getData(e));
+  const tgtVal=cfg.target();
+  const stats=cfg.stats(d);
+
+  document.getElementById('page-detail').innerHTML=`
+    <!-- Header banner -->
+    <div style="background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px;border-left:6px solid ${cfg.ic}">
+      <div style="width:52px;height:52px;border-radius:12px;background:${cfg.bg};display:flex;align-items:center;justify-content:center;font-size:22px;color:${cfg.ic};flex-shrink:0">
+        <i class="fa-solid ${cfg.icon}"></i>
+      </div>
+      <div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy2)">${cfg.title}</div>
+        <div style="font-size:13px;color:var(--gray400);margin-top:2px">${cfg.sub}</div>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="detail-hero">
+      ${stats.map(s=>`<div class="detail-stat ${s.cls}"><div class="ds-label">${s.l}</div><div class="ds-val">${s.v}</div><div class="ds-note">${s.n}</div></div>`).join('')}
+    </div>
+
+    <!-- Chart -->
+    <div class="detail-chart-card">
+      <div class="detail-chart-title">
+        <i class="fa-solid fa-chart-line" style="color:${cfg.ic}"></i>
+        12-Week Trend — ${cfg.label}
+        <span style="margin-left:auto;font-size:12px;color:var(--gray400);font-weight:400">${entries.length} total weeks stored</span>
+      </div>
+      <div class="detail-chart-wrap"><canvas id="detail-canvas"></canvas></div>
+    </div>
+
+    <!-- History table -->
+    <div class="card">
+      <div class="card-header">
+        <div class="ch-left">
+          <div class="card-icon" style="background:${cfg.bg};color:${cfg.ic}"><i class="fa-solid fa-clock-rotate-left"></i></div>
+          <div>
+            <h3>All Historical Entries</h3>
+            <div class="sub">Click <b>Edit</b> on any row to update that week's data</div>
+          </div>
+        </div>
+        <span style="font-size:12px;color:var(--gray400)">${entries.length} week${entries.length!==1?'s':''} on record</span>
+      </div>
+      <div class="card-body" style="padding:0;overflow-x:auto">
+        <table class="d-table">
+          <thead><tr>${cfg.cols.map(c=>`<th>${c}</th>`).join('')}<th>Actions</th></tr></thead>
+          <tbody id="detail-hist-body"></tbody>
+        </table>
+      </div>
+    </div>`;
+
+  // Draw chart
+  if(detailChart){detailChart.destroy();detailChart=null;}
+  const ptColors=d.map(e=>cfg.ptColor(e));
+  detailChart=new Chart(document.getElementById('detail-canvas'),{
+    type:cfg.chartType,
+    data:{labels:lbl,datasets:[
+      {label:cfg.label,data:vals,borderColor:cfg.chartColor,backgroundColor:cfg.chartBg,fill:cfg.chartType==='line',tension:.35,
+       pointBackgroundColor:ptColors,pointRadius:6,pointHoverRadius:8,borderRadius:cfg.chartType==='bar'?6:undefined,
+       borderWidth:2.5},
+      {label:'Target '+(tgtVal+(cfg.unit||'')),data:d.map(()=>tgtVal),borderColor:'#16a34a',borderDash:[8,5],borderWidth:2,pointRadius:0,fill:false,type:'line'},
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{labels:{font:{size:13},color:'#475569',boxWidth:16,padding:20}},
+        tooltip:{backgroundColor:'#1e293b',titleColor:'#f1f5f9',bodyColor:'#cbd5e1',padding:12,cornerRadius:10,titleFont:{size:13},bodyFont:{size:13}}},
+      scales:{x:{...xA(),ticks:{...xA().ticks,font:{size:12}}},
+        y:{...yA(cfg.unit),...(cfg.scaleMin!=null?{suggestedMin:cfg.scaleMin}:{}),...(cfg.scaleMax!=null?{suggestedMax:cfg.scaleMax}:{})}}},
+  });
+
+  populateDetailHist(key,entries,cfg);
+
+  document.getElementById('pageTitle').textContent=cfg.title;
+  showPage('detail',null);
+  window.scrollTo(0,0);
+}
+
+function populateDetailHist(key,entries,cfg){
+  const tb=document.getElementById('detail-hist-body');
+  if(!tb)return;
+  if(!entries.length){tb.innerHTML=`<tr><td colspan="20" style="text-align:center;color:var(--gray400);padding:32px">No entries yet.</td></tr>`;return;}
+  tb.innerHTML=entries.map((e,i)=>{
+    const cells=cfg.row(e);
+    return`<tr id="drow-${i}">
+      ${cells.map(c=>`<td>${c}</td>`).join('')}
+      <td><button class="edit-btn" onclick="startEdit(${i},'${key}')"><i class="fa-solid fa-pen-to-square"></i> Edit</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function startEdit(idx,key){
+  const cfg=DCFG[key],entries=load(),entry=entries[idx];
+  if(!entry)return;
+  const row=document.getElementById('drow-'+idx);if(!row)return;
+  const getVal=(obj,path)=>{
+    const parts=path.split('.');let o=obj;
+    for(let i=0;i<parts.length;i++){if(o==null)return'';if(Array.isArray(o)&&!isNaN(parts[i]))o=o[parseInt(parts[i])];else o=o[parts[i]];}
+    return o??'';
+  };
+  const fields=cfg.editFields||[];
+  const inputs=fields.map(f=>`
+    <div>
+      <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;color:var(--gray600);margin-bottom:3px">${f.label}</label>
+      <input class="inline-input" type="number" ${f.step?`step="${f.step}"`:'step="1"'}
+        ${f.min!=null?`min="${f.min}"`:''}${f.max!=null?`max="${f.max}"`:''}
+        value="${getVal(entry,f.key)}" id="ei_${idx}_${f.key.replace(/\./g,'_')}">
+    </div>`).join('');
+  row.classList.add('editing');
+  row.innerHTML=`<td colspan="${cfg.cols.length+1}" style="padding:16px">
+    <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:12px">
+      <i class="fa-solid fa-pen" style="color:var(--blue)"></i>
+      Editing: <span style="color:var(--blue)">${wkLabel(entry.week)}</span> · ${entry.area||'—'}
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:14px">${inputs}</div>
+    <button class="save-btn" onclick="saveEdit(${idx},'${key}')"><i class="fa-solid fa-check"></i> Save Changes</button>
+    <button class="cancel-btn" onclick="openDetail('${key}')">Cancel</button>
+  </td>`;
+}
+
+function saveEdit(idx,key){
+  const cfg=DCFG[key],entries=load(),entry=entries[idx];if(!entry)return;
+  cfg.editFields.forEach(f=>{
+    const el=document.getElementById('ei_'+idx+'_'+f.key.replace(/\./g,'_'));if(!el)return;
+    const val=parseFloat(el.value);
+    const parts=f.key.split('.');let obj=entry;
+    for(let i=0;i<parts.length-1;i++){if(Array.isArray(obj)&&!isNaN(parts[i]))obj=obj[parseInt(parts[i])];else obj=obj[parts[i]];}
+    const last=parts[parts.length-1];
+    if(Array.isArray(obj)&&!isNaN(last))obj[parseInt(last)]=isNaN(val)?0:val;
+    else obj[last]=isNaN(val)?0:val;
+  });
+  cfg.recalc(entry);
+  entries[idx]=entry;
+  save(entries);
+  toast('Entry updated!','success');
+  openDetail(key);
+  renderDash();
+}
+
+/* ── HISTORY PAGE ── */
+function ragBadge(r){
+  const M={green:['#dcfce7','#16a34a','●'],amber:['#fef3c7','#d97706','▲'],red:['#fee2e2','#dc2626','✕']};
+  const[bg,c,s]=M[r]||M['green'];
+  return`<span style="background:${bg};color:${c};padding:2px 9px;border-radius:12px;font-size:11px;font-weight:700">${s} ${r}</span>`;
+}
+function renderHist(){
+  const entries=load();const tb=document.getElementById('histBody');
+  if(!entries.length){tb.innerHTML=`<tr><td colspan="10" style="text-align:center;color:var(--gray400);padding:40px">No entries yet.</td></tr>`;return;}
+  tb.innerHTML=entries.map(e=>`<tr>
+    <td style="white-space:nowrap;font-weight:600">${wkLabel(e.week)}</td>
+    <td>${e.area||'—'}</td>
+    <td>${e.otd.pct!=null?ragBadge(e.otd.rag)+'<br><small style="color:var(--gray400)">'+e.otd.pct+'%</small>':'—'}</td>
+    <td style="text-align:center">${e.safety.recordable===0?'<span style="color:var(--green);font-weight:700">0 ✓</span>':'<span style="color:var(--red);font-weight:700">'+e.safety.recordable+'</span>'}</td>
+    <td style="text-align:center">${e.safety.nearmiss===0?'<span style="color:var(--green)">0</span>':'<span style="color:var(--amber);font-weight:700">'+e.safety.nearmiss+'</span>'}</td>
+    <td>${e.oee.oee!=null?ragBadge(e.oee.rag)+'<br><small style="color:var(--gray400)">'+e.oee.oee+'%</small>':'—'}</td>
+    <td>${ragBadge(e.fives.rag)+'<br><small style="color:var(--gray400)">'+e.fives.total+'/25</small>'}</td>
+    <td>${e.mwo.adh!=null?ragBadge(e.mwo.rag)+'<br><small style="color:var(--gray400)">'+e.mwo.adh+'%</small>':'—'}</td>
+    <td>${[e.otd.rag,e.safety.rag,e.oee.rag,e.fives.rag,e.mwo.rag].includes('red')?ragBadge('red'):[e.otd.rag,e.safety.rag,e.oee.rag,e.fives.rag,e.mwo.rag].includes('amber')?ragBadge('amber'):ragBadge('green')}</td>
+    <td style="color:var(--gray400)">${e.by||'—'}</td>
+  </tr>`).join('');
+}
+
+/* ── TARGETS ── */
+function loadTgtForm(){
+  const t=loadT(),m={otd_g:'t_otd_g',otd_a:'t_otd_a',oee_g:'t_oee_g',oee_a:'t_oee_a',fives_g:'t_5s_g',fives_a:'t_5s_a',mwo_g:'t_mwo_g',mwo_a:'t_mwo_a'};
+  Object.keys(m).forEach(k=>{const el=document.getElementById(m[k]);if(el)el.value=t[k];});
+}
+function saveTargets(){
+  const m={t_otd_g:'otd_g',t_otd_a:'otd_a',t_oee_g:'oee_g',t_oee_a:'oee_a',t_5s_g:'fives_g',t_5s_a:'fives_a',t_mwo_g:'mwo_g',t_mwo_a:'mwo_a'};
+  const t={};Object.keys(m).forEach(id=>{const el=document.getElementById(id);if(el&&el.value)t[m[id]]=+el.value;});
+  localStorage.setItem(TK,JSON.stringify(t));toast('Targets saved!','success');
+}
+
+/* ── MISC ── */
+function clearAll(){if(!confirm('Delete all KPI entries?'))return;localStorage.removeItem(SK);renderHist();renderDash();toast('All entries cleared.','success');}
+function exportData(){
+  const blob=new Blob([JSON.stringify({entries:load(),targets:loadT(),exported:new Date().toISOString()},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='cmi-kpi-'+new Date().toISOString().split('T')[0]+'.json';a.click();toast('Exported!','success');
+}
+function toast(msg,type='success'){
+  const tc=document.getElementById('toast-container');
+  const el=document.createElement('div');el.className='toast-msg '+type;
+  el.innerHTML=`<i class="fa-solid ${type==='success'?'fa-circle-check':'fa-circle-exclamation'}"></i> ${msg}`;
+  tc.appendChild(el);setTimeout(()=>el.remove(),3500);
+}
+
+/* ── SEED DEMO DATA ── */
+function seed(){
+  if(load().length)return;
+  const weeks=['2026-04-21','2026-04-14','2026-04-07','2026-03-31','2026-03-24','2026-03-17','2026-03-10','2026-03-03','2026-02-24','2026-02-17','2026-02-10','2026-02-03'];
+  const t=loadT();
+  const entries=weeks.map((w,i)=>{
+    const otdPct=[97.2,94.8,96.5,91.3,86.7,95.4,96.8,92.1,98.0,94.5,93.8,97.1][i];
+    const rec=[0,0,0,0,1,0,0,0,0,0,0,0][i],nm=[0,1,0,2,3,0,1,0,0,2,1,0][i];
+    const avail=[91.5,88.2,90.8,84.1,78.3,89.6,91.0,85.4,93.2,87.8,86.5,91.8][i];
+    const perf=[94.8,93.1,95.2,91.0,88.5,94.3,95.0,92.5,96.1,93.8,92.5,95.4][i];
+    const qual=[98.5,97.8,98.2,96.1,94.3,97.5,98.0,96.5,98.8,97.2,96.9,98.1][i];
+    const oee=+(avail*perf*qual/10000).toFixed(1);
+    const fScores=[[4,4,3,4,4],[3,3,4,3,3],[4,4,4,5,4],[2,3,2,3,3],[1,2,2,2,2],[4,4,3,4,5],[4,4,4,4,4],[3,4,3,3,3],[5,4,5,4,4],[3,3,4,3,3],[3,3,3,4,3],[4,4,4,4,4]][i];
+    const fTotal=fScores.reduce((a,b)=>a+b,0);
+    const mwoP=[18,16,20,14,12,18,20,15,22,16,17,19][i],mwoD=[17,14,19,11,8,17,20,13,22,15,14,18][i];
+    const mwoAdh=+(mwoD/mwoP*100).toFixed(1),otdOn=Math.round(otdPct/100*36);
+    return{
+      id:Date.now()-i*1000,week:w,area:'Entire Plant',by:'Mennen Suleiman',
+      otd:{pct:otdPct,ontime:otdOn,due:36,late:36-otdOn,notes:'',rag:otdPct>=t.otd_g?'green':otdPct>=t.otd_a?'amber':'red'},
+      safety:{recordable:rec,losttime:0,nearmiss:nm,dayswithout:[45,38,30,22,0,15,10,7,5,3,2,1][i],obs:[4,3,5,4,2,6,3,4,5,3,4,2][i],mtg:[2,2,1,2,1,2,2,1,2,1,2,2][i],notes:'',rag:rec>0?'red':nm>2?'amber':'green'},
+      oee:{availability:avail,performance:perf,quality:qual,oee,planned_dt:[4,6,4,8,12,5,4,7,3,6,6,4][i],unplanned_dt:[0,3,1,8,18,2,1,6,0,4,3,1][i],cause:['','Mechanical Failure','Tooling Change','Material Issue','Mechanical Failure','Scheduled Maintenance','','Quality Hold','','Material Issue','Tooling Change',''][i],mtbf:[120,96,110,72,48,102,115,84,130,95,92,118][i],notes:'',rag:oee>=t.oee_g?'green':oee>=t.oee_a?'amber':'red'},
+      fives:{scores:fScores,total:fTotal,notes:'',rag:fTotal>=t.fives_g?'green':fTotal>=t.fives_a?'amber':'red'},
+      mwo:{planned:mwoP,done:mwoD,overdue:mwoP-mwoD,adh:mwoAdh,reactive:[2,3,1,5,7,2,1,4,0,3,2,1][i],pm:[10,8,12,7,5,10,13,8,15,9,10,11][i],notes:'',rag:mwoAdh>=t.mwo_g?'green':mwoAdh>=t.mwo_a?'amber':'red'},
+    };
+  });
+  save(entries);
+}
+
+/* ── INIT ── */
+(function(){
+  seed();
+  const today=new Date(),day=today.getDay();
+  const diff=today.getDate()-day+(day===0?-6:1);
+  const mon=new Date(today.setDate(diff));
+  document.getElementById('f_week').value=mon.toISOString().split('T')[0];
+  updateWeekLabel();
+  renderDash();
+  loadTgtForm();
+})();
+</script>
+</body>
+</html>

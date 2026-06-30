@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thermoformer Floor — Top-Down Live View</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --line: #30363d;
+    --steel: #3a4350;
+    --steel-d: #2a313c;
+    --steel-l: #4a5460;
+    --accent: #58a6ff;
+    --good: #3fb950;
+    --idle: #6e7681;
+    --box: #c8954a;
+    --box-d: #9a6f33;
+    --box-l: #e0b876;
+    --belt: #1b2027;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(circle at 50% 0%, #1a2230 0%, var(--bg) 70%);
+    color: #e6edf3;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  header { text-align: center; margin-bottom: 6px; }
+  header h1 { font-size: 21px; font-weight: 600; margin: 0; letter-spacing: 0.3px; }
+  header p { margin: 4px 0 0; color: #8b949e; font-size: 13px; }
+
+  /* Stats */
+  .stats { display: flex; gap: 14px; margin: 14px 0 16px; flex-wrap: wrap; justify-content: center; }
+  .stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 9px 18px; text-align: center; min-width: 116px; }
+  .stat .val { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: #8b949e; margin-top: 2px; }
+  .stat .val.green { color: var(--good); }
+  .stat .val.blue { color: var(--accent); }
+
+  /* Controls */
+  .controls { display: flex; gap: 10px; margin-bottom: 16px; }
+  button {
+    background: var(--panel); color: #e6edf3; border: 1px solid var(--line);
+    border-radius: 8px; padding: 9px 22px; font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  button:hover { background: #21262d; }
+  #startBtn { border-color: rgba(63,185,80,0.5); color: #7ee787; }
+  #startBtn.running { border-color: rgba(248,81,73,0.5); color: #ff7b72; }
+  button:hover#startBtn { background: rgba(63,185,80,0.08); }
+
+  /* Floor: stack of independent machine rows */
+  .floor {
+    width: 100%;
+    max-width: 1180px;
+    background:
+      repeating-linear-gradient(0deg, transparent 0 41px, rgba(255,255,255,0.02) 41px 42px),
+      linear-gradient(180deg, #11161e 0%, #0d1117 100%);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.6);
+  }
+
+  /* One independent thermoformer line */
+  .row {
+    display: flex;
+    align-items: stretch;
+    height: 40px;
+    margin: 5px 0;
+  }
+
+  /* The machine (Sencorp-style thermoformer), top-down */
+  .machine {
+    flex: 0 0 236px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(180deg, var(--steel-l) 0%, var(--steel) 45%, var(--steel-d) 100%);
+    border: 1px solid #525c69;
+    border-radius: 6px;
+    padding: 0 8px 0 10px;
+    position: relative;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.1);
+    z-index: 2;
+    transition: filter 0.2s;
+  }
+  .machine .light {
+    flex: 0 0 auto;
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--idle);
+    box-shadow: none;
+    transition: background 0.2s;
+  }
+  .running .machine .light { background: var(--good); box-shadow: 0 0 8px var(--good); animation: blink 1.6s ease-in-out infinite; }
+  @keyframes blink { 0%,70%{opacity:1;} 80%{opacity:.4;} 90%,100%{opacity:1;} }
+  .machine .meta { display: flex; align-items: center; min-width: 0; }
+  .machine .nm { font-size: 16px; font-weight: 800; letter-spacing: 0.3px; color: #ffffff; white-space: nowrap; }
+  .machine .count {
+    margin-left: auto;
+    font-size: 20px; font-weight: 800; color: var(--good);
+    font-variant-numeric: tabular-nums;
+    min-width: 30px; text-align: right;
+  }
+  .machine .count.bump { animation: bump 0.3s ease; }
+  @keyframes bump { 0%{transform:scale(1);} 45%{transform:scale(1.4); color:#7ee787;} 100%{transform:scale(1);} }
+
+  /* per-machine pause ("break") button */
+  .machine .pauseM {
+    flex: 0 0 auto;
+    width: 30px; height: 26px; padding: 0;
+    font-size: 12px; font-weight: 700;
+    border-radius: 5px;
+    border: 1px solid #5a6470;
+    background: #20262e; color: #c9d1d9;
+  }
+  .machine .pauseM:hover { background: #2d343d; border-color: var(--accent); }
+
+  /* a machine that is ON BREAK (individually paused) */
+  .row.brk .machine { filter: saturate(0.35) brightness(0.78); }
+  .row.brk { position: relative; }
+  .row.brk::after {
+    content: "ON BREAK";
+    position: absolute; left: 104px; top: 50%; transform: translateY(-50%);
+    font-size: 8px; font-weight: 800; letter-spacing: 1px;
+    color: #ffa657; pointer-events: none; z-index: 3;
+  }
+  .running .row.brk .machine .light { background: #d29922; box-shadow: 0 0 8px #d29922; animation: none; }
+  .running .row.brk .belt::before { animation-play-state: paused; }
+  .row.brk .machine .pauseM { background: #3d2b14; border-color: #d29922; color: #ffa657; }
+
+  /* This machine's own conveyor belt */
+  .belt {
+    flex: 1 1 auto;
+    position: relative;
+    margin-left: -4px;            /* tuck belt under the machine output */
+    background: var(--belt);
+    border-top: 2px solid #2d343d;
+    border-bottom: 2px solid #2d343d;
+    border-radius: 0 5px 5px 0;
+    overflow: hidden;
+  }
+  .belt::before {
+    content: "";
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(115deg, rgba(255,255,255,0.06) 0 3px, transparent 3px 26px);
+    animation: beltscroll 0.8s linear infinite;
+    animation-play-state: paused;
+  }
+  .running .belt::before { animation-play-state: running; }
+  @keyframes beltscroll { to { background-position: 52px 0; } }
+  /* roller seams */
+  .belt::after {
+    content: "";
+    position: absolute; inset: 0;
+    background: repeating-linear-gradient(90deg, transparent 0 46px, rgba(0,0,0,0.3) 46px 47px);
+    pointer-events: none;
+  }
+
+  /* A produced box travelling down this machine's belt (top-down carton) */
+  .box {
+    position: absolute;
+    top: 50%;
+    width: 20px; height: 20px;
+    transform: translate(-50%, -50%);
+    background: linear-gradient(135deg, var(--box-l) 0%, var(--box) 55%, var(--box-d) 100%);
+    border: 1px solid var(--box-d);
+    border-radius: 3px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    will-change: left;
+  }
+  .box::before { /* tape seam */
+    content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+    width: 3px; transform: translateX(-50%); background: rgba(255,255,255,0.3);
+  }
+  .box.pop { animation: pop 0.3s ease-out; }
+  @keyframes pop {
+    0% { transform: translate(-50%,-50%) scale(0.2); opacity: 0; }
+    70% { transform: translate(-50%,-50%) scale(1.15); opacity: 1; }
+    100% { transform: translate(-50%,-50%) scale(1); }
+  }
+
+  .hint { margin-top: 14px; font-size: 12px; color: #8b949e; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Thermoformer Floor — Top-Down Live View</h1>
+    <p>10 independent lines · each runs its own belt at 20 boxes/min and counts its own output</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="val green" id="statRunning">0</div><div class="lbl">Machines Running</div></div>
+    <div class="stat"><div class="val blue" id="statTotal">0</div><div class="lbl">Total Boxes</div></div>
+    <div class="stat"><div class="val" id="statRate">0</div><div class="lbl">Boxes / Min</div></div>
+    <div class="stat"><div class="val" id="statClock">00:00</div><div class="lbl">Run Time</div></div>
+  </div>
+
+  <div class="controls">
+    <button id="startBtn">▶ Start</button>
+    <button id="resetBtn">↺ Reset</button>
+  </div>
+
+  <div class="floor" id="floor"><!-- rows injected by JS --></div>
+
+  <div class="hint">Press <strong>Start</strong> to run the floor. Every line runs at 20 boxes/min; use each machine's pause button to stage breaks and compare the totals.</div>
+
+<script>
+  const MACHINE_COUNT = 10;
+  const floor   = document.getElementById("floor");
+
+  // Belt travel: a box crosses its belt in ~4.5s (percent of belt width per second)
+  const BELT_SPEED = 22;          // %/sec
+
+  // Output rate: every line runs at 20 boxes/min => one box every 3.0s.
+  const RATE_PER_MIN = 20;
+  function cycleFor(i) { return 60000 / RATE_PER_MIN; }   // 3000 ms, same for all lines
+
+  // Build the floor
+  const machines = [];
+  for (let i = 0; i < MACHINE_COUNT; i++) {
+    const row = document.createElement("div");
+    row.className = "row";
+    row.innerHTML = `
+      <div class="machine">
+        <div class="light"></div>
+        <div class="meta"><span class="nm">Line ${i + 1}</span></div>
+        <div class="count" id="cnt${i}">0</div>
+        <button class="pauseM" title="Put this machine on break">⏸</button>
+      </div>
+      <div class="belt" id="belt${i}"></div>`;
+    floor.appendChild(row);
+    const m = {
+      interval: cycleFor(i),
+      acc: 0,                       // ms accumulated toward next output
+      count: 0,
+      paused: false,                // individually "on break"
+      boxes: [],                    // {el, x}
+      rowEl: row,
+      countEl: row.querySelector(".count"),
+      beltEl: row.querySelector(".belt"),
+      btnEl: row.querySelector(".pauseM"),
+    };
+    m.btnEl.addEventListener("click", () => toggleMachine(m));
+    machines.push(m);
+  }
+
+  // State
+  let running   = false;
+  let lastTs    = performance.now();
+  let runtimeMs = 0;                // accumulated running time
+
+  const statRunning = document.getElementById("statRunning");
+  const statTotal   = document.getElementById("statTotal");
+  const statRate    = document.getElementById("statRate");
+  const statClock   = document.getElementById("statClock");
+
+  function totalBoxes() { return machines.reduce((s, m) => s + m.count, 0); }
+
+  function outputBox(m) {
+    // machine stamps out a box onto its own belt and increments its counter
+    m.count++;
+    m.countEl.textContent = m.count;
+    m.countEl.classList.remove("bump");
+    void m.countEl.offsetWidth;
+    m.countEl.classList.add("bump");
+
+    const el = document.createElement("div");
+    el.className = "box pop";
+    el.style.left = "0%";
+    el.addEventListener("animationend", () => el.classList.remove("pop"), { once: true });
+    m.beltEl.appendChild(el);
+    m.boxes.push({ el, x: 0 });
+  }
+
+  function activeCount() {
+    // machines actually producing right now = program running AND not on break
+    return running ? machines.filter(m => !m.paused).length : 0;
+  }
+  function updateRunningStat() { statRunning.textContent = activeCount(); }
+
+  function toggleMachine(m) {
+    m.paused = !m.paused;
+    m.rowEl.classList.toggle("brk", m.paused);
+    m.btnEl.textContent = m.paused ? "▶" : "⏸";
+    m.btnEl.title = m.paused ? "Resume this machine" : "Put this machine on break";
+    updateRunningStat();
+  }
+
+  function step(dt) {
+    runtimeMs += dt;
+
+    for (const m of machines) {
+      if (m.paused) continue;       // on break: no production, belt frozen
+      // produce on this machine's own cycle
+      m.acc += dt;
+      while (m.acc >= m.interval) {
+        m.acc -= m.interval;
+        outputBox(m);
+      }
+      // advance this machine's boxes down its belt
+      const move = BELT_SPEED * (dt / 1000);
+      for (const b of m.boxes) {
+        b.x += move;
+        b.el.style.left = b.x + "%";
+      }
+      m.boxes = m.boxes.filter(b => {
+        if (b.x > 104) { b.el.remove(); return false; }
+        return true;
+      });
+    }
+
+    // live stats
+    statTotal.textContent = totalBoxes();
+    const mins = runtimeMs / 60000;
+    statRate.textContent = mins > 0 ? Math.round(totalBoxes() / mins) : 0;
+    const secs = Math.floor(runtimeMs / 1000);
+    statClock.textContent = String(Math.floor(secs / 60)).padStart(2, "0") + ":" + String(secs % 60).padStart(2, "0");
+  }
+
+  function frame() {
+    const ts = performance.now();
+    const dt = Math.min(ts - lastTs, 100);   // clamp so a backgrounded tab can't jump
+    lastTs = ts;
+    if (running) step(dt);
+  }
+  setInterval(frame, 30);
+
+  // --- Controls ---
+  const startBtn = document.getElementById("startBtn");
+  startBtn.addEventListener("click", () => {
+    running = !running;
+    startBtn.textContent = running ? "⏸ Stop" : "▶ Start";
+    startBtn.classList.toggle("running", running);
+    document.body.classList.toggle("running", running);  // drives belt + light animations
+    updateRunningStat();
+    lastTs = performance.now();
+  });
+
+  document.getElementById("resetBtn").addEventListener("click", () => {
+    running = false;
+    startBtn.textContent = "▶ Start";
+    startBtn.classList.remove("running");
+    document.body.classList.remove("running");
+    runtimeMs = 0;
+    statRunning.textContent = 0;
+    statTotal.textContent = 0;
+    statRate.textContent = 0;
+    statClock.textContent = "00:00";
+    for (const m of machines) {
+      m.count = 0; m.acc = 0; m.paused = false;
+      m.countEl.textContent = 0;
+      m.rowEl.classList.remove("brk");
+      m.btnEl.textContent = "⏸";
+      m.btnEl.title = "Put this machine on break";
+      m.boxes.forEach(b => b.el.remove());
+      m.boxes = [];
+    }
+  });
+</script>
+</body>
+</html>

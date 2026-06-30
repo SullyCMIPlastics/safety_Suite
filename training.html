@@ -1,0 +1,1653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TrainTrack — Manufacturing Training Management</title>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/prop-types@15.8.1/prop-types.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; }
+  .sidebar { width: 240px; min-width: 240px; }
+  .sidebar-collapsed { width: 64px; min-width: 64px; }
+  .main-content { flex: 1; overflow: auto; }
+  .nav-item { transition: background 0.15s; }
+  .nav-item:hover { background: rgba(255,255,255,0.12); }
+  .nav-item.active { background: rgba(255,255,255,0.18); border-left: 3px solid #f59e0b; }
+  .badge-green  { background:#dcfce7; color:#166534; }
+  .badge-yellow { background:#fef9c3; color:#854d0e; }
+  .badge-red    { background:#fee2e2; color:#991b1b; }
+  .badge-gray   { background:#f3f4f6; color:#374151; }
+  .badge-blue   { background:#dbeafe; color:#1e40af; }
+  .stat-card { transition: box-shadow 0.15s; }
+  .stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+  .table-row:hover { background: #f8fafc; }
+  input, select, textarea { outline: none; }
+  input:focus, select:focus, textarea:focus { box-shadow: 0 0 0 2px #3b82f6; }
+  .modal-overlay { background: rgba(0,0,0,0.45); }
+  .progress-bar { transition: width 0.4s ease; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+  .alert-pulse { animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.6} }
+  .chip { display:inline-flex; align-items:center; padding:2px 10px; border-radius:9999px; font-size:11px; font-weight:600; }
+  .tab-active { border-bottom: 2px solid #2563eb; color: #2563eb; }
+  .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+  .tab-inactive:hover { color: #374151; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = Recharts;
+
+// ─── CONSTANTS ──────────────────────────────────────────────────────────────
+const ROLES = [
+  "Production Associate","Roll Changer","Scanner","Warehouse Associate",
+  "Production Lead","Production Supervisor","Warehouse Lead","Warehouse Supervisor",
+  "Baler","Set Up Mechanic","Facilities Technician","Management"
+];
+
+const MANAGER_ROLES = ["Production Lead","Production Supervisor","Warehouse Lead","Warehouse Supervisor","Management"];
+
+const STATUS_COLORS = { Completed:"badge-green", "In Progress":"badge-blue", Overdue:"badge-red", "Not Started":"badge-gray", "Due Soon":"badge-yellow" };
+
+const FREQ_OPTIONS = ["One-Time","Monthly","Quarterly","Semi-Annual","Annual","Biennial"];
+
+const PIE_COLORS = ["#22c55e","#3b82f6","#ef4444","#f59e0b","#94a3b8"];
+
+// ─── SEED DATA ───────────────────────────────────────────────────────────────
+const SEED_TRAININGS = [
+  { id:"t1", name:"Lockout/Tagout (LOTO) – Initial",            category:"Safety",      duration:60,  frequency:"Annual",      assignedRoles:["Production Associate","Roll Changer","Set Up Mechanic","Facilities Technician","Production Lead","Production Supervisor"] },
+  { id:"t2", name:"Personal Protective Equipment (PPE)",         category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:["Production Associate","Roll Changer","Baler","Warehouse Associate","Set Up Mechanic","Facilities Technician"] },
+  { id:"t3", name:"Hazard Communication (HazCom / GHS)",         category:"Safety",      duration:45,  frequency:"Annual",      assignedRoles:ROLES },
+  { id:"t4", name:"Emergency Action Plan & Evacuation",          category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:ROLES },
+  { id:"t5", name:"Forklift / Powered Industrial Truck",         category:"Equipment",   duration:120, frequency:"Annual",      assignedRoles:["Warehouse Associate","Warehouse Lead","Warehouse Supervisor","Baler"] },
+  { id:"t6", name:"Good Manufacturing Practices (GMP)",          category:"Quality",     duration:45,  frequency:"Annual",      assignedRoles:["Production Associate","Roll Changer","Scanner","Production Lead","Production Supervisor","Set Up Mechanic"] },
+  { id:"t7", name:"Fire Extinguisher Use",                       category:"Safety",      duration:20,  frequency:"Annual",      assignedRoles:ROLES },
+  { id:"t8", name:"Machine Guarding Awareness",                  category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:["Production Associate","Roll Changer","Set Up Mechanic","Facilities Technician"] },
+  { id:"t9", name:"Hearing Conservation",                        category:"Safety",      duration:20,  frequency:"Annual",      assignedRoles:["Production Associate","Roll Changer","Baler","Set Up Mechanic","Facilities Technician"] },
+  { id:"t10",name:"Ergonomics & Manual Material Handling",       category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:["Production Associate","Warehouse Associate","Baler","Roll Changer"] },
+  { id:"t11",name:"Quality Inspection & Defect Recognition",     category:"Quality",     duration:60,  frequency:"Annual",      assignedRoles:["Production Associate","Scanner","Production Lead","Production Supervisor"] },
+  { id:"t12",name:"5S Workplace Organization",                   category:"Lean",        duration:45,  frequency:"Annual",      assignedRoles:ROLES },
+  { id:"t13",name:"New Employee Orientation",                    category:"Onboarding",  duration:240, frequency:"One-Time",    assignedRoles:ROLES },
+  { id:"t14",name:"Incident Reporting & Near-Miss",              category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:ROLES },
+  { id:"t15",name:"Powered Pallet Jack Operation",               category:"Equipment",   duration:60,  frequency:"Annual",      assignedRoles:["Warehouse Associate","Warehouse Lead","Baler"] },
+  { id:"t16",name:"Leadership & Coaching Fundamentals",          category:"Leadership",  duration:120, frequency:"Annual",      assignedRoles:["Production Lead","Production Supervisor","Warehouse Lead","Warehouse Supervisor","Management"] },
+  { id:"t17",name:"Confined Space Awareness",                    category:"Safety",      duration:30,  frequency:"Annual",      assignedRoles:["Facilities Technician","Set Up Mechanic"] },
+  { id:"t18",name:"Roll Change Procedures",                      category:"Equipment",   duration:90,  frequency:"Annual",      assignedRoles:["Roll Changer","Production Supervisor"] },
+  { id:"t19",name:"Baler Safe Operations",                       category:"Equipment",   duration:60,  frequency:"Annual",      assignedRoles:["Baler","Warehouse Lead"] },
+  { id:"t20",name:"Scanning & WMS System Use",                   category:"Technology",  duration:45,  frequency:"Annual",      assignedRoles:["Scanner","Warehouse Associate","Warehouse Lead"] },
+];
+
+function generateEmpNo(existingNos) {
+  let n;
+  do { n = "EMP" + String(Math.floor(10000 + Math.random()*90000)); }
+  while (existingNos.includes(n));
+  return n;
+}
+
+function daysDiff(dateStr) {
+  const d = new Date(dateStr) - new Date();
+  return Math.ceil(d / 86400000);
+}
+
+function addDays(d, days) {
+  const r = new Date(d); r.setDate(r.getDate() + days); return r.toISOString().split("T")[0];
+}
+
+function today() { return new Date().toISOString().split("T")[0]; }
+
+function freqToDays(freq) {
+  return { "One-Time":null,"Monthly":30,"Quarterly":91,"Semi-Annual":182,"Annual":365,"Biennial":730 }[freq] ?? 365;
+}
+
+function getStatus(rec) {
+  if (!rec) return "Not Started";
+  if (!rec.completedDate) return "Not Started";
+  if (rec.dueDate) {
+    const diff = daysDiff(rec.dueDate);
+    if (diff < 0) return "Overdue";
+    if (diff <= 30) return "Due Soon";
+  }
+  return "Completed";
+}
+
+const SEED_EMPLOYEES = [
+  { id:"e1",  employeeNumber:"EMP10001", name:"Maria Santos",    email:"m.santos@plant.com",   role:"Production Supervisor", managerId:"e7",  active:true },
+  { id:"e2",  employeeNumber:"EMP10002", name:"James Okafor",    email:"j.okafor@plant.com",   role:"Production Associate",  managerId:"e1",  active:true },
+  { id:"e3",  employeeNumber:"EMP10003", name:"Linda Kwan",      email:"l.kwan@plant.com",     role:"Roll Changer",          managerId:"e1",  active:true },
+  { id:"e4",  employeeNumber:"EMP10004", name:"Derek Holt",      email:"d.holt@plant.com",     role:"Warehouse Associate",   managerId:"e8",  active:true },
+  { id:"e5",  employeeNumber:"EMP10005", name:"Priya Sharma",    email:"p.sharma@plant.com",   role:"Scanner",               managerId:"e8",  active:true },
+  { id:"e6",  employeeNumber:"EMP10006", name:"Carlos Mendez",   email:"c.mendez@plant.com",   role:"Baler",                 managerId:"e8",  active:true },
+  { id:"e7",  employeeNumber:"EMP10007", name:"Susan Park",      email:"s.park@plant.com",     role:"Management",            managerId:null,  active:true },
+  { id:"e8",  employeeNumber:"EMP10008", name:"Tom Reeves",      email:"t.reeves@plant.com",   role:"Warehouse Supervisor",  managerId:"e7",  active:true },
+  { id:"e9",  employeeNumber:"EMP10009", name:"Angela Brown",    email:"a.brown@plant.com",    role:"Set Up Mechanic",       managerId:"e1",  active:true },
+  { id:"e10", employeeNumber:"EMP10010", name:"Kevin Marsh",     email:"k.marsh@plant.com",    role:"Facilities Technician", managerId:"e7",  active:true },
+  { id:"e11", employeeNumber:"EMP10011", name:"Rosa Delgado",    email:"r.delgado@plant.com",  role:"Production Lead",       managerId:"e1",  active:true },
+  { id:"e12", employeeNumber:"EMP10012", name:"Brian Cole",      email:"b.cole@plant.com",     role:"Warehouse Lead",        managerId:"e8",  active:true },
+];
+
+function buildSeedRecords() {
+  const records = {};
+  SEED_EMPLOYEES.forEach(emp => {
+    records[emp.id] = {};
+    const applicable = SEED_TRAININGS.filter(t => t.assignedRoles.includes(emp.role));
+    applicable.forEach((t, i) => {
+      const seed = Math.random();
+      if (seed < 0.55) {
+        const completed = addDays(today(), -(Math.floor(Math.random()*300)+30));
+        const days = freqToDays(t.frequency);
+        const due = days ? addDays(completed, days) : null;
+        records[emp.id][t.id] = { completedDate: completed, dueDate: due };
+      } else if (seed < 0.70) {
+        const due = addDays(today(), Math.floor(Math.random()*20)-10);
+        records[emp.id][t.id] = { completedDate: null, dueDate: due };
+      }
+    });
+  });
+  return records;
+}
+
+// ─── SERVER-SYNCED STORE ──────────────────────────────────────────────────────
+// Same pattern as the CMMS: localStorage is the synchronous read cache, every
+// write fires a PUT to the FastAPI/SQLite backend, and on startup we pull the
+// authoritative copy from the server so every device sees the same data.
+// Keys are tt_-prefixed so they never collide with the CMMS keys in the shared DB.
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+const TT_KEYS = ["tt_employees", "tt_trainings", "tt_records", "tt_emailLog"];
+
+const STORE = {
+  get: k => { try { return JSON.parse(localStorage.getItem(k) || "null"); } catch { return null; } },
+  set: (k, v) => {
+    try { localStorage.setItem(k, JSON.stringify(v)); } catch {}
+    fetch("/api/store/" + k, { method:"PUT", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(v) })
+      .catch(() => {/* offline — localStorage is the fallback */});
+  },
+  // Pull all tt_ keys from the server into localStorage. Returns true if the
+  // server was authoritative, false if it was empty (first-time migration).
+  syncWithServer: async () => {
+    try {
+      const res = await fetch("/api/store");
+      if (!res.ok) return false;
+      const data = await res.json();
+      if (TT_KEYS.some(k => k in data)) {
+        TT_KEYS.forEach(k => { if (k in data) { try { localStorage.setItem(k, JSON.stringify(data[k])); } catch {} } });
+        return true;
+      }
+      return false;   // server empty for our keys
+    } catch { return false; }
+  },
+};
+
+// Blob helpers — embedded training files live in their own table, fetched on demand.
+async function putBlob(key, obj) {
+  await fetch("/api/blob/" + key, { method:"PUT", headers:{ "Content-Type":"application/json" }, body: JSON.stringify(obj) });
+}
+async function getBlob(key) {
+  try { const r = await fetch("/api/blob/" + key); if (!r.ok) return null; return await r.json(); }
+  catch { return null; }
+}
+async function delBlob(key) { try { await fetch("/api/blob/" + key, { method:"DELETE" }); } catch {} }
+
+// Open a material in a new tab (link → URL; embedded file → blob fetched on demand).
+async function openMaterial(m) {
+  if (m.url) { window.open(m.url, "_blank"); return; }
+  if (!m.blobKey) return;
+  const blob = await getBlob(m.blobKey);
+  if (!blob || !blob.data) { alert("File not found on the server — it may not have finished uploading."); return; }
+  const res = await fetch(blob.data);          // data: URL → Blob
+  const b   = await res.blob();
+  const url = URL.createObjectURL(b);
+  window.open(url, "_blank");
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+const MATERIAL_KINDS = ["PPT", "Video", "Test", "PDF", "Document", "Other", "Link"];
+const MATERIAL_ICON = { PPT:"file-powerpoint", Video:"file-video", Test:"file-circle-check", PDF:"file-pdf", Document:"file-word", Other:"file", Link:"link" };
+function inferKind(filename, mime) {
+  const ext = (filename.split(".").pop() || "").toLowerCase();
+  if (["ppt","pptx","key","odp"].includes(ext)) return "PPT";
+  if (["mp4","mov","avi","webm","mkv","m4v"].includes(ext)) return "Video";
+  if (ext === "pdf") return "PDF";
+  if (["doc","docx","odt","rtf"].includes(ext)) return "Document";
+  if ((mime||"").startsWith("video/")) return "Video";
+  return "Other";
+}
+function fmtSize(bytes) {
+  if (!bytes) return "";
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1048576) return (bytes/1024).toFixed(0) + " KB";
+  return (bytes/1048576).toFixed(1) + " MB";
+}
+
+// ─── STATE LOAD / SAVE ────────────────────────────────────────────────────────
+function loadState() {
+  const employees = STORE.get("tt_employees");
+  const trainings = STORE.get("tt_trainings");
+  const records   = STORE.get("tt_records");
+  const emailLog  = STORE.get("tt_emailLog");
+  if (employees && trainings && records) {
+    return { employees, trainings, records, emailLog: emailLog || [] };
+  }
+  // No cached data yet → start from seed (gets pushed to the server on first sync).
+  return { employees: SEED_EMPLOYEES, trainings: SEED_TRAININGS, records: buildSeedRecords(), emailLog: [] };
+}
+
+function saveState(state) {
+  STORE.set("tt_employees", state.employees);
+  STORE.set("tt_trainings", state.trainings);
+  STORE.set("tt_records",   state.records);
+  STORE.set("tt_emailLog",  state.emailLog);
+}
+
+// Trainings an employee is responsible for = required by their role + any
+// individually assigned cross-training classes. Completion records are keyed by
+// employee×training, so they survive role changes and cross-training.
+function applicableTrainings(emp, trainings) {
+  const extra = emp.extraTrainings || [];
+  return trainings.filter(t => t.assignedRoles.includes(emp.role) || extra.includes(t.id));
+}
+
+// ─── ICONS ───────────────────────────────────────────────────────────────────
+const Icon = ({ name, cls="" }) => <i className={`fa-solid fa-${name} ${cls}`}></i>;
+
+// ─── STATUS BADGE ─────────────────────────────────────────────────────────────
+function StatusBadge({ status }) {
+  const cls = STATUS_COLORS[status] ?? "badge-gray";
+  const icons = { Completed:"circle-check","In Progress":"spinner","Overdue":"triangle-exclamation","Due Soon":"clock","Not Started":"minus" };
+  return (
+    <span className={`chip ${cls}`}>
+      <i className={`fa-solid fa-${icons[status] ?? "minus"} mr-1`} style={{fontSize:10}}></i>
+      {status}
+    </span>
+  );
+}
+
+// ─── MODAL ────────────────────────────────────────────────────────────────────
+function Modal({ title, onClose, children, wide }) {
+  useEffect(() => {
+    const h = e => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, []);
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+      <div className={`bg-white rounded-xl shadow-2xl flex flex-col ${wide ? "w-full max-w-3xl" : "w-full max-w-lg"} max-h-[92vh]`}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <h3 className="text-base font-semibold text-gray-800">{title}</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg"><Icon name="xmark"/></button>
+        </div>
+        <div className="overflow-y-auto flex-1 p-6">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function Toast({ msg, type, onDone }) {
+  useEffect(() => { const t = setTimeout(onDone, 3200); return () => clearTimeout(t); }, []);
+  const bg = type==="success"?"bg-green-600":type==="error"?"bg-red-600":"bg-blue-600";
+  return (
+    <div className={`fixed bottom-6 right-6 z-[100] flex items-center gap-3 px-5 py-3 rounded-lg text-white shadow-xl ${bg}`}>
+      <Icon name={type==="success"?"circle-check":type==="error"?"circle-xmark":"circle-info"}/>
+      <span className="text-sm font-medium">{msg}</span>
+    </div>
+  );
+}
+
+// ─── CONFIRM DIALOG ───────────────────────────────────────────────────────────
+function Confirm({ msg, onYes, onNo }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center modal-overlay">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-80">
+        <p className="text-sm text-gray-700 mb-5">{msg}</p>
+        <div className="flex gap-3 justify-end">
+          <button onClick={onNo} className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={onYes} className="px-4 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App() {
+  const [state, setState] = useState(() => loadState());
+  const [page, setPage] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [toast, setToast] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+
+  const { employees, trainings, records, emailLog } = state;
+
+  const update = useCallback((patch) => {
+    setState(prev => { const next = { ...prev, ...patch }; saveState(next); return next; });
+  }, []);
+
+  // On startup, pull authoritative data from the server; if the server is empty
+  // for our keys, push whatever we have (cached or seed) up to it.
+  useEffect(() => {
+    (async () => {
+      const serverAuthoritative = await STORE.syncWithServer();
+      if (serverAuthoritative) setState(loadState());
+      else setState(prev => { saveState(prev); return prev; });
+    })();
+  }, []);
+
+  const showToast = (msg, type="success") => setToast({ msg, type });
+
+  // Simulate email alert
+  const sendAlert = (to, subject, body) => {
+    const entry = { id: Date.now(), to, subject, body, sentAt: new Date().toLocaleString() };
+    update({ emailLog: [entry, ...emailLog].slice(0, 200) });
+    showToast(`Alert sent to ${to}`, "success");
+  };
+
+  // Compute overdue / due soon counts per employee
+  const empStats = useMemo(() => {
+    const out = {};
+    employees.forEach(emp => {
+      let overdue=0, dueSoon=0, completed=0, total=0;
+      applicableTrainings(emp, trainings).forEach(t => {
+        total++;
+        const rec = records[emp.id]?.[t.id];
+        const st = getStatus(rec);
+        if (st==="Completed") completed++;
+        else if (st==="Overdue") overdue++;
+        else if (st==="Due Soon") dueSoon++;
+      });
+      out[emp.id] = { overdue, dueSoon, completed, total, pct: total ? Math.round(completed/total*100) : 0 };
+    });
+    return out;
+  }, [employees, trainings, records]);
+
+  const pages = {
+    dashboard:   <Dashboard employees={employees} trainings={trainings} records={records} empStats={empStats} sendAlert={sendAlert} setPage={setPage}/>,
+    employees:   <Employees employees={employees} trainings={trainings} records={records} empStats={empStats} update={update} showToast={showToast} sendAlert={sendAlert} state={state}/>,
+    training_lib:<TrainingLibrary trainings={trainings} update={update} showToast={showToast}/>,
+    role_matrix: <RoleMatrix trainings={trainings} update={update} showToast={showToast}/>,
+    audit:       <AuditReport employees={employees} trainings={trainings} records={records}/>,
+    alerts:      <AlertLog emailLog={emailLog}/>,
+  };
+
+  const navItems = [
+    { id:"dashboard",   icon:"gauge-high",        label:"Dashboard" },
+    { id:"employees",   icon:"users",             label:"Employees" },
+    { id:"training_lib",icon:"book-open",          label:"Training Library" },
+    { id:"role_matrix", icon:"table-cells",        label:"Role Matrix" },
+    { id:"audit",       icon:"clipboard-check",    label:"Audit" },
+    { id:"alerts",      icon:"bell",              label:"Alert Log" },
+  ];
+
+  const totalOverdue = Object.values(empStats).reduce((a,b)=>a+b.overdue,0);
+
+  return (
+    <div className="flex h-screen overflow-hidden">
+      {/* Sidebar */}
+      <div className={`${sidebarOpen?"sidebar":"sidebar-collapsed"} bg-gray-900 flex flex-col text-white transition-all duration-200`}>
+        <div className="flex items-center gap-3 px-4 py-4 border-b border-gray-700">
+          {sidebarOpen && (
+            <div>
+              <div className="text-sm font-bold text-amber-400 tracking-wide">TrainTrack</div>
+              <div className="text-xs text-gray-400">Manufacturing LMS</div>
+            </div>
+          )}
+          <button onClick={()=>setSidebarOpen(p=>!p)} className="ml-auto text-gray-400 hover:text-white p-1">
+            <Icon name={sidebarOpen?"chevron-left":"bars"}/>
+          </button>
+        </div>
+        <nav className="flex-1 py-3 px-2 space-y-1">
+          {navItems.map(n => (
+            <button key={n.id} onClick={()=>setPage(n.id)}
+              className={`nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm ${page===n.id?"active text-white":"text-gray-300"}`}>
+              <span className="w-5 text-center relative">
+                <Icon name={n.icon}/>
+                {n.id==="alerts" && totalOverdue>0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center" style={{fontSize:9}}>{totalOverdue>9?"9+":totalOverdue}</span>
+                )}
+              </span>
+              {sidebarOpen && <span>{n.label}</span>}
+            </button>
+          ))}
+        </nav>
+        {sidebarOpen && (
+          <div className="px-4 py-3 border-t border-gray-700 text-xs text-gray-500">
+            <div className="font-medium text-gray-400">Plant Manager</div>
+            <div>Susan Park</div>
+          </div>
+        )}
+      </div>
+
+      {/* Main */}
+      <div className="main-content flex flex-col">
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+          <h1 className="text-base font-semibold text-gray-700 capitalize">{navItems.find(n=>n.id===page)?.label}</h1>
+          <div className="flex items-center gap-3 text-sm text-gray-500">
+            {totalOverdue > 0 && (
+              <button onClick={()=>setPage("alerts")} className="flex items-center gap-1 text-red-600 font-medium alert-pulse">
+                <Icon name="triangle-exclamation"/>{totalOverdue} Overdue
+              </button>
+            )}
+            <span className="text-gray-300">|</span>
+            <span>{new Date().toLocaleDateString("en-US",{month:"short",day:"numeric",year:"numeric"})}</span>
+          </div>
+        </header>
+        <div className="flex-1 overflow-auto p-6">
+          {pages[page]}
+        </div>
+      </div>
+
+      {toast && <Toast msg={toast.msg} type={toast.type} onDone={()=>setToast(null)}/>}
+      {confirm && <Confirm msg={confirm.msg} onYes={()=>{confirm.onYes();setConfirm(null);}} onNo={()=>setConfirm(null)}/>}
+    </div>
+  );
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function Dashboard({ employees, trainings, records, empStats, sendAlert, setPage }) {
+  const activeEmps = employees.filter(e=>e.active);
+  const totalOverdue  = Object.values(empStats).reduce((a,b)=>a+b.overdue,0);
+  const totalDueSoon  = Object.values(empStats).reduce((a,b)=>a+b.dueSoon,0);
+  const totalCompleted= Object.values(empStats).reduce((a,b)=>a+b.completed,0);
+  const totalAssigned = Object.values(empStats).reduce((a,b)=>a+b.total,0);
+  const overallPct    = totalAssigned ? Math.round(totalCompleted/totalAssigned*100) : 0;
+
+  // Bar chart: compliance by role
+  const roleData = ROLES.map(role => {
+    const emps = activeEmps.filter(e=>e.role===role);
+    if (!emps.length) return null;
+    const total = emps.reduce((a,e)=>a+(empStats[e.id]?.total||0),0);
+    const comp  = emps.reduce((a,e)=>a+(empStats[e.id]?.completed||0),0);
+    return { role: role.split(" ").slice(-1)[0], pct: total ? Math.round(comp/total*100) : 0 };
+  }).filter(Boolean);
+
+  // Pie: status breakdown
+  const statuses = { Completed:0, "Due Soon":0, Overdue:0, "Not Started":0 };
+  activeEmps.forEach(emp => {
+    applicableTrainings(emp, trainings).forEach(t => {
+      const st = getStatus(records[emp.id]?.[t.id]);
+      statuses[st] = (statuses[st]||0)+1;
+    });
+  });
+  const pieData = Object.entries(statuses).map(([name,value])=>({name,value})).filter(d=>d.value>0);
+
+  // Critical employees (most overdue)
+  const critEmps = activeEmps
+    .map(e=>({ ...e, ...empStats[e.id] }))
+    .filter(e=>e.overdue>0)
+    .sort((a,b)=>b.overdue-a.overdue)
+    .slice(0,8);
+
+  // Send bulk alerts
+  const sendBulkAlerts = () => {
+    critEmps.forEach(emp => {
+      const mgr = employees.find(e=>e.id===emp.managerId);
+      if (mgr) sendAlert(mgr.email, `Training Overdue: ${emp.name}`, `${emp.name} (${emp.employeeNumber}) has ${emp.overdue} overdue training(s).`);
+    });
+  };
+
+  return (
+    <div className="space-y-5">
+      {/* KPI row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <KpiCard icon="users" iconBg="bg-blue-100" iconColor="text-blue-600"
+          label="Active Employees" value={activeEmps.length} sub="Total headcount"/>
+        <KpiCard icon="circle-check" iconBg="bg-green-100" iconColor="text-green-600"
+          label="Overall Compliance" value={`${overallPct}%`} sub={`${totalCompleted}/${totalAssigned} items complete`}
+          bar={overallPct}/>
+        <KpiCard icon="clock" iconBg="bg-amber-100" iconColor="text-amber-600"
+          label="Due Within 30 Days" value={totalDueSoon} sub="Across all employees"/>
+        <KpiCard icon="triangle-exclamation" iconBg="bg-red-100" iconColor="text-red-600"
+          label="Overdue Items" value={totalOverdue} sub="Require immediate action" alert={totalOverdue>0}/>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        {/* Bar chart */}
+        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Compliance Rate by Role</h2>
+          <ResponsiveContainer width="100%" height={200}>
+            <BarChart data={roleData} margin={{left:-20,right:10}}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0"/>
+              <XAxis dataKey="role" tick={{fontSize:10}} angle={-30} textAnchor="end" height={45}/>
+              <YAxis tick={{fontSize:10}} domain={[0,100]} unit="%"/>
+              <Tooltip formatter={v=>`${v}%`}/>
+              <Bar dataKey="pct" name="Compliance" fill="#3b82f6" radius={[4,4,0,0]}/>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Pie */}
+        <div className="bg-white rounded-xl shadow-sm p-5">
+          <h2 className="text-sm font-semibold text-gray-700 mb-4">Training Status Breakdown</h2>
+          <ResponsiveContainer width="100%" height={180}>
+            <PieChart>
+              <Pie data={pieData} cx="50%" cy="50%" innerRadius={45} outerRadius={75} paddingAngle={3} dataKey="value">
+                {pieData.map((entry,i)=>(<Cell key={i} fill={PIE_COLORS[i%PIE_COLORS.length]}/>))}
+              </Pie>
+              <Tooltip/>
+              <Legend iconSize={10} wrapperStyle={{fontSize:11}}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Critical employees table */}
+      <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">Employees with Overdue Training</h2>
+          {critEmps.length > 0 && (
+            <button onClick={sendBulkAlerts} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 text-white text-xs font-medium rounded-lg hover:bg-amber-600">
+              <Icon name="bell"/>Alert All Managers
+            </button>
+          )}
+        </div>
+        {critEmps.length === 0 ? (
+          <div className="text-center py-10 text-green-600 font-medium"><Icon name="circle-check" cls="mr-2"/>All employees are on track!</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-xs text-gray-500 border-b border-gray-100">
+                <th className="text-left py-2 font-semibold">Employee</th>
+                <th className="text-left py-2 font-semibold">Role</th>
+                <th className="text-left py-2 font-semibold">Manager</th>
+                <th className="text-center py-2 font-semibold">Overdue</th>
+                <th className="text-center py-2 font-semibold">Due Soon</th>
+                <th className="text-center py-2 font-semibold">Compliance</th>
+              </tr></thead>
+              <tbody>
+                {critEmps.map(emp => {
+                  const mgr = employees.find(e=>e.id===emp.managerId);
+                  return (
+                    <tr key={emp.id} className="table-row border-b border-gray-50">
+                      <td className="py-2.5">
+                        <div className="font-medium text-gray-800">{emp.name}</div>
+                        <div className="text-xs text-gray-400">{emp.employeeNumber}</div>
+                      </td>
+                      <td className="py-2.5 text-gray-600 text-xs">{emp.role}</td>
+                      <td className="py-2.5 text-gray-600 text-xs">{mgr?.name ?? "—"}</td>
+                      <td className="py-2.5 text-center"><span className="chip badge-red">{emp.overdue}</span></td>
+                      <td className="py-2.5 text-center"><span className="chip badge-yellow">{emp.dueSoon}</span></td>
+                      <td className="py-2.5 text-center">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                            <div className="progress-bar bg-blue-500 h-1.5 rounded-full" style={{width:`${emp.pct}%`}}></div>
+                          </div>
+                          <span className="text-xs text-gray-500 w-8">{emp.pct}%</span>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Department summary */}
+      <DeptSummary employees={activeEmps} empStats={empStats}/>
+    </div>
+  );
+}
+
+function KpiCard({ icon, iconBg, iconColor, label, value, sub, bar, alert }) {
+  return (
+    <div className={`stat-card bg-white rounded-xl shadow-sm p-4 flex flex-col gap-2 ${alert?"border border-red-200":""}`}>
+      <div className="flex items-center gap-3">
+        <div className={`${iconBg} w-9 h-9 rounded-lg flex items-center justify-center`}>
+          <i className={`fa-solid fa-${icon} ${iconColor}`}></i>
+        </div>
+        <div>
+          <div className="text-xs text-gray-500">{label}</div>
+          <div className={`text-xl font-bold ${alert?"text-red-600":"text-gray-800"}`}>{value}</div>
+        </div>
+      </div>
+      {bar !== undefined && (
+        <div className="w-full bg-gray-100 rounded-full h-1.5">
+          <div className="progress-bar bg-green-500 h-1.5 rounded-full" style={{width:`${bar}%`}}></div>
+        </div>
+      )}
+      <div className="text-xs text-gray-400">{sub}</div>
+    </div>
+  );
+}
+
+function DeptSummary({ employees, empStats }) {
+  const groups = {};
+  ROLES.forEach(r => { groups[r] = []; });
+  employees.forEach(e => { if (groups[e.role]) groups[e.role].push(e); });
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm p-5">
+      <h2 className="text-sm font-semibold text-gray-700 mb-4">Summary by Role</h2>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+        {Object.entries(groups).filter(([,emps])=>emps.length>0).map(([role, emps]) => {
+          const overdue = emps.reduce((a,e)=>a+(empStats[e.id]?.overdue||0),0);
+          const pct = emps.length ? Math.round(emps.reduce((a,e)=>a+(empStats[e.id]?.pct||0),0)/emps.length) : 0;
+          return (
+            <div key={role} className="border border-gray-100 rounded-lg p-3">
+              <div className="text-xs font-semibold text-gray-700 mb-1 truncate">{role}</div>
+              <div className="text-xs text-gray-500 mb-2">{emps.length} employee{emps.length!==1?"s":""}</div>
+              <div className="flex items-center gap-2 mb-1">
+                <div className="flex-1 bg-gray-100 rounded-full h-1.5">
+                  <div className="progress-bar h-1.5 rounded-full" style={{width:`${pct}%`, background: pct>80?"#22c55e":pct>50?"#f59e0b":"#ef4444"}}></div>
+                </div>
+                <span className="text-xs text-gray-500">{pct}%</span>
+              </div>
+              {overdue>0 && <div className="text-xs text-red-500 font-medium"><Icon name="triangle-exclamation" cls="mr-1"/>{overdue} overdue</div>}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ─── EMPLOYEES ────────────────────────────────────────────────────────────────
+function Employees({ employees, trainings, records, empStats, update, showToast, sendAlert, state }) {
+  const [search, setSearch] = useState("");
+  const [filterRole, setFilterRole] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [modalEmp, setModalEmp] = useState(null);   // null=closed, "new"=add, obj=edit
+  const [detailEmp, setDetailEmp] = useState(null);
+
+  const filtered = employees.filter(e => {
+    if (!e.active) return false;
+    if (search && !e.name.toLowerCase().includes(search.toLowerCase()) && !e.employeeNumber.includes(search)) return false;
+    if (filterRole && e.role !== filterRole) return false;
+    if (filterStatus) {
+      const st = empStats[e.id];
+      if (filterStatus==="overdue" && !st?.overdue) return false;
+      if (filterStatus==="dueSoon" && !st?.dueSoon) return false;
+      if (filterStatus==="onTrack" && (st?.overdue||st?.dueSoon)) return false;
+    }
+    return true;
+  });
+
+  const saveEmp = (emp) => {
+    let empList = [...employees];
+    if (emp.id) {
+      const prev = employees.find(e => e.id === emp.id);
+      // Record a role change in the employee's history so position changes are auditable.
+      let roleHistory = emp.roleHistory || prev?.roleHistory || [];
+      if (prev && prev.role !== emp.role) {
+        roleHistory = [...roleHistory, { from: prev.role, to: emp.role, date: today() }];
+        showToast(`${emp.name} moved to ${emp.role}. Training history retained.`);
+      } else {
+        showToast(`${emp.name} updated.`);
+      }
+      const merged = { ...emp, roleHistory };
+      empList = empList.map(e => e.id===emp.id ? merged : e);
+    } else {
+      const newEmp = { ...emp, id: "e_"+Date.now(), employeeNumber: generateEmpNo(employees.map(e=>e.employeeNumber)), active: true, roleHistory: [], extraTrainings: emp.extraTrainings||[] };
+      empList = [...empList, newEmp];
+      showToast(`${newEmp.name} added (${newEmp.employeeNumber}).`);
+    }
+    update({ employees: empList });
+    setModalEmp(null);
+  };
+
+  const deactivateEmp = (emp) => {
+    update({ employees: employees.map(e => e.id===emp.id ? {...e,active:false} : e) });
+    showToast(`${emp.name} deactivated.`);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Icon name="magnifying-glass" cls="absolute left-3 top-2.5 text-gray-400 text-xs"/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search name or ID…"
+              className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg w-56"/>
+          </div>
+          <select value={filterRole} onChange={e=>setFilterRole(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+            <option value="">All Roles</option>
+            {ROLES.map(r=><option key={r}>{r}</option>)}
+          </select>
+          <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+            <option value="">All Status</option>
+            <option value="overdue">Has Overdue</option>
+            <option value="dueSoon">Due Soon</option>
+            <option value="onTrack">On Track</option>
+          </select>
+        </div>
+        <button onClick={()=>setModalEmp("new")} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+          <Icon name="plus"/>Add Employee
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="px-5 py-3 border-b border-gray-100 text-xs text-gray-500 font-medium">
+          {filtered.length} employee{filtered.length!==1?"s":""}
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-gray-500 border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-5 py-3 font-semibold">Employee</th>
+              <th className="text-left px-4 py-3 font-semibold">Role</th>
+              <th className="text-left px-4 py-3 font-semibold">Manager</th>
+              <th className="text-center px-4 py-3 font-semibold">Overdue</th>
+              <th className="text-center px-4 py-3 font-semibold">Due Soon</th>
+              <th className="text-center px-4 py-3 font-semibold">Compliance</th>
+              <th className="text-right px-5 py-3 font-semibold">Actions</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map(emp => {
+                const st = empStats[emp.id] || {};
+                const mgr = employees.find(e=>e.id===emp.managerId);
+                return (
+                  <tr key={emp.id} className="table-row border-b border-gray-50">
+                    <td className="px-5 py-3">
+                      <div className="font-medium text-gray-800">{emp.name}</div>
+                      <div className="text-xs text-gray-400">{emp.employeeNumber} · {emp.email}</div>
+                    </td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{emp.role}</td>
+                    <td className="px-4 py-3 text-xs text-gray-600">{mgr?.name ?? <span className="text-gray-300">—</span>}</td>
+                    <td className="px-4 py-3 text-center">
+                      {st.overdue>0 ? <span className="chip badge-red">{st.overdue}</span> : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {st.dueSoon>0 ? <span className="chip badge-yellow">{st.dueSoon}</span> : <span className="text-gray-300">—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 bg-gray-100 rounded-full h-1.5 w-20">
+                          <div className="progress-bar h-1.5 rounded-full" style={{width:`${st.pct||0}%`, background: (st.pct||0)>80?"#22c55e":(st.pct||0)>50?"#f59e0b":"#ef4444"}}></div>
+                        </div>
+                        <span className="text-xs text-gray-500 w-8">{st.pct||0}%</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3 text-right space-x-2">
+                      <button onClick={()=>setDetailEmp(emp)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">View</button>
+                      <button onClick={()=>setModalEmp(emp)} className="text-gray-500 hover:text-gray-700 text-xs">Edit</button>
+                      {st.overdue>0 && mgr && (
+                        <button onClick={()=>sendAlert(mgr.email,`Overdue Training: ${emp.name}`,`${emp.name} has ${st.overdue} overdue training(s).`)}
+                          className="text-amber-600 hover:text-amber-800 text-xs font-medium">Alert</button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+          {filtered.length===0 && <div className="text-center py-12 text-gray-400 text-sm">No employees match your filters.</div>}
+        </div>
+      </div>
+
+      {modalEmp && (
+        <EmpModal emp={modalEmp==="new"?null:modalEmp} employees={employees} trainings={trainings} onSave={saveEmp} onClose={()=>setModalEmp(null)}/>
+      )}
+      {detailEmp && (
+        <EmpDetail emp={detailEmp} employees={employees} trainings={trainings} records={records}
+          onClose={()=>setDetailEmp(null)} update={update} state={state} showToast={showToast} sendAlert={sendAlert}/>
+      )}
+    </div>
+  );
+}
+
+function EmpModal({ emp, employees, trainings, onSave, onClose }) {
+  const [form, setForm] = useState(emp ? { ...emp, extraTrainings:[...(emp.extraTrainings||[])] } : { name:"",email:"",role:"Production Associate",managerId:"",extraTrainings:[] });
+  const set = (k,v) => setForm(p=>({...p,[k]:v}));
+  const managers = employees.filter(e=>e.active && MANAGER_ROLES.includes(e.role));
+
+  // Classes already required by the selected role (shown as locked-on); everything
+  // else can be toggled as cross-training for this individual.
+  const roleReqIds = (trainings||[]).filter(t=>t.assignedRoles.includes(form.role)).map(t=>t.id);
+  const crossOptions = (trainings||[]).filter(t=>!roleReqIds.includes(t.id));
+  const toggleExtra = (tId) => {
+    const cur = form.extraTrainings || [];
+    set("extraTrainings", cur.includes(tId) ? cur.filter(x=>x!==tId) : [...cur, tId]);
+  };
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onSave(form);
+  };
+
+  return (
+    <Modal title={emp?"Edit Employee":"Add Employee"} onClose={onClose} wide>
+      <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Full Name *</label>
+          <input value={form.name} onChange={e=>set("name",e.target.value)} required
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Email Address</label>
+          <input type="email" value={form.email} onChange={e=>set("email",e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Role *</label>
+          <select value={form.role} onChange={e=>set("role",e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+            {ROLES.map(r=><option key={r}>{r}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Assigned Manager</label>
+          <select value={form.managerId||""} onChange={e=>set("managerId",e.target.value||null)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+            <option value="">— No Manager —</option>
+            {managers.map(m=><option key={m.id} value={m.id}>{m.name} ({m.role})</option>)}
+          </select>
+        </div>
+        <div>
+          <div className="flex items-center justify-between mb-1">
+            <label className="text-xs font-medium text-gray-600">Cross-Training — Additional Classes</label>
+            <span className="text-xs text-gray-400">Beyond the {form.role} role defaults</span>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1 border border-gray-100 rounded-lg p-3 max-h-52 overflow-y-auto">
+            {roleReqIds.length>0 && (
+              <div className="sm:col-span-2 text-xs text-gray-400 pb-1">
+                {roleReqIds.length} class{roleReqIds.length!==1?"es":""} already required by this role.
+              </div>
+            )}
+            {crossOptions.length===0 && <div className="text-xs text-gray-400 py-2">No additional classes available.</div>}
+            {crossOptions.map(t=>(
+              <label key={t.id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1">
+                <input type="checkbox" checked={(form.extraTrainings||[]).includes(t.id)} onChange={()=>toggleExtra(t.id)} className="rounded text-blue-600"/>
+                <span className="truncate">{t.name}</span>
+                <span className="chip badge-blue ml-auto" style={{fontSize:9}}>{t.category}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {emp && (
+          <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500">
+            Employee #: <span className="font-mono font-semibold">{emp.employeeNumber}</span> (auto-generated, read-only)
+            {emp.roleHistory && emp.roleHistory.length>0 && (
+              <div className="mt-1.5 text-gray-400">
+                Position history: {emp.roleHistory.map((h,i)=><span key={i}>{i>0?", ":""}{h.from}→{h.to} ({h.date})</span>)}
+              </div>
+            )}
+          </div>
+        )}
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+            {emp?"Save Changes":"Add Employee"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function EmpDetail({ emp, employees, trainings, records, onClose, update, state, showToast, sendAlert }) {
+  const [tab, setTab] = useState("trainings");
+  const [viewMaterials, setViewMaterials] = useState(null);
+  const empRecs = records[emp.id] || {};
+  const applicable = applicableTrainings(emp, trainings);
+  const extraIds = emp.extraTrainings || [];
+  const mgr = employees.find(e=>e.id===emp.managerId);
+
+  const [completeFor, setCompleteFor] = useState(null);   // training being marked complete
+  const saveCompletion = (tId, completedDate, score) => {
+    const days = freqToDays(trainings.find(t=>t.id===tId)?.frequency);
+    const due = days ? addDays(completedDate, days) : null;
+    const rec = { completedDate, dueDate: due };
+    if (score !== "" && score != null) rec.score = Number(score);
+    const newRecs = { ...state.records, [emp.id]: { ...(state.records[emp.id]||{}), [tId]: rec } };
+    update({ records: newRecs });
+    showToast("Training recorded.");
+    setCompleteFor(null);
+  };
+
+  const overdueList = applicable.filter(t => getStatus(empRecs[t.id])==="Overdue");
+
+  return (
+    <Modal title={`${emp.name} — Training Record`} onClose={onClose} wide>
+      <div className="space-y-4">
+        {/* Header info */}
+        <div className="grid grid-cols-3 gap-4 text-sm bg-gray-50 rounded-lg p-4">
+          <div><div className="text-xs text-gray-400">Employee #</div><div className="font-mono font-semibold">{emp.employeeNumber}</div></div>
+          <div><div className="text-xs text-gray-400">Role</div><div>{emp.role}</div></div>
+          <div><div className="text-xs text-gray-400">Manager</div><div>{mgr?.name ?? "—"}</div></div>
+          <div><div className="text-xs text-gray-400">Email</div><div>{emp.email||"—"}</div></div>
+          <div><div className="text-xs text-gray-400">Assigned Trainings</div><div>{applicable.length}</div></div>
+          <div><div className="text-xs text-gray-400">Overdue</div>
+            <div className={overdueList.length>0?"text-red-600 font-semibold":"text-green-600"}>{overdueList.length}</div>
+          </div>
+        </div>
+
+        {overdueList.length>0 && mgr && (
+          <div className="flex items-center justify-between bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-sm">
+            <span className="text-red-700"><Icon name="triangle-exclamation" cls="mr-2"/>{overdueList.length} overdue — manager: {mgr.name} ({mgr.email})</span>
+            <button onClick={()=>sendAlert(mgr.email,`Overdue Training: ${emp.name}`,`${emp.name} has ${overdueList.length} overdue training(s).`)}
+              className="text-xs bg-red-600 text-white px-3 py-1 rounded-lg hover:bg-red-700">Send Alert</button>
+          </div>
+        )}
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 gap-4">
+          {["trainings","history"].map(t=>(
+            <button key={t} onClick={()=>setTab(t)} className={`pb-2 text-sm font-medium capitalize ${tab===t?"tab-active":"tab-inactive"}`}>
+              {t==="trainings"?"Training Status":"Completion History"}
+            </button>
+          ))}
+        </div>
+
+        {tab==="trainings" && (
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-gray-500 border-b border-gray-100">
+              <th className="text-left py-2 font-semibold">Training</th>
+              <th className="text-left py-2 font-semibold">Category</th>
+              <th className="text-left py-2 font-semibold">Frequency</th>
+              <th className="text-left py-2 font-semibold">Due Date</th>
+              <th className="text-left py-2 font-semibold">Status</th>
+              <th className="text-right py-2 font-semibold">Action</th>
+            </tr></thead>
+            <tbody>
+              {applicable.map(t => {
+                const rec = empRecs[t.id];
+                const st = getStatus(rec);
+                const mats = t.materials || [];
+                return (
+                  <tr key={t.id} className="table-row border-b border-gray-50">
+                    <td className="py-2.5 font-medium text-gray-800 pr-4">
+                      {t.name}
+                      {extraIds.includes(t.id) && <span className="chip badge-blue ml-2" style={{fontSize:9}}>Cross-trained</span>}
+                      {mats.length>0 && (
+                        <button onClick={()=>setViewMaterials(t)} className="ml-2 text-gray-400 hover:text-blue-600" title={`${mats.length} material${mats.length!==1?"s":""}`}>
+                          <Icon name="paperclip"/><span className="text-xs ml-0.5">{mats.length}</span>
+                        </button>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-xs text-gray-500">{t.category}</td>
+                    <td className="py-2.5 text-xs text-gray-500">{t.frequency}</td>
+                    <td className="py-2.5 text-xs text-gray-500">
+                      {rec?.dueDate ? (
+                        <span className={daysDiff(rec.dueDate)<0?"text-red-600 font-medium":daysDiff(rec.dueDate)<=30?"text-amber-600 font-medium":""}>
+                          {rec.dueDate}
+                        </span>
+                      ) : "—"}
+                    </td>
+                    <td className="py-2.5"><StatusBadge status={st}/></td>
+                    <td className="py-2.5 text-right">
+                      <button onClick={()=>setCompleteFor(t)} className="text-xs text-blue-600 hover:text-blue-800 font-medium">
+                        {st === "Completed" ? "Re-record" : "Mark Complete"}
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+
+        {tab==="history" && (
+          <div className="space-y-2 max-h-72 overflow-y-auto">
+            {applicable.filter(t=>empRecs[t.id]?.completedDate).sort((a,b)=>empRecs[b.id].completedDate.localeCompare(empRecs[a.id].completedDate)).map(t=>(
+              <div key={t.id} className="flex items-center justify-between border border-gray-100 rounded-lg px-4 py-2.5 text-sm">
+                <div>
+                  <div className="font-medium text-gray-700">{t.name}</div>
+                  <div className="text-xs text-gray-400">
+                    Completed: {empRecs[t.id].completedDate}
+                    {empRecs[t.id].score != null && <span className="ml-2">· Score: <span className="font-semibold text-gray-600">{empRecs[t.id].score}%</span></span>}
+                    {empRecs[t.id].dueDate && <span className="ml-2">· Next due: {empRecs[t.id].dueDate}</span>}
+                  </div>
+                </div>
+                <StatusBadge status={getStatus(empRecs[t.id])}/>
+              </div>
+            ))}
+            {applicable.filter(t=>empRecs[t.id]?.completedDate).length===0 && (
+              <div className="text-center text-gray-400 py-8 text-sm">No completed trainings yet.</div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {completeFor && (
+        <CompleteModal training={completeFor} rec={empRecs[completeFor.id]} empName={emp.name}
+          onSave={(date,score)=>saveCompletion(completeFor.id, date, score)} onClose={()=>setCompleteFor(null)}/>
+      )}
+      {viewMaterials && <MaterialsViewer training={viewMaterials} onClose={()=>setViewMaterials(null)}/>}
+    </Modal>
+  );
+}
+
+// ─── COMPLETION MODAL ─────────────────────────────────────────────────────────
+// Captures the real completion date (so audits reflect when training actually
+// happened, not just today) and an optional test score.
+function CompleteModal({ training, rec, empName, onSave, onClose }) {
+  const [date, setDate]   = useState(rec?.completedDate || today());
+  const [score, setScore] = useState(rec?.score != null ? String(rec.score) : "");
+  const days = freqToDays(training.frequency);
+  const nextDue = days ? addDays(date, days) : null;
+  return (
+    <Modal title={`Record Completion — ${training.name}`} onClose={onClose}>
+      <div className="space-y-4">
+        <p className="text-sm text-gray-500">Recording completion for <span className="font-medium text-gray-700">{empName}</span>.</p>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Completion Date *</label>
+          <input type="date" value={date} max={today()} onChange={e=>setDate(e.target.value)}
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-600 mb-1">Test Score (%) — optional</label>
+          <input type="number" min={0} max={100} value={score} onChange={e=>setScore(e.target.value)} placeholder="e.g. 95"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+        </div>
+        <div className="bg-gray-50 rounded-lg px-3 py-2 text-xs text-gray-500">
+          Frequency: <span className="font-medium">{training.frequency}</span>
+          {nextDue ? <> · Next due: <span className="font-medium text-gray-700">{nextDue}</span></> : <> · One-time (no recurrence)</>}
+        </div>
+        <div className="flex gap-3 pt-1">
+          <button onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button onClick={()=>date && onSave(date, score)} className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Save Record</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ─── MATERIALS VIEWER (read-only access to a class's files) ───────────────────
+function MaterialsViewer({ training, onClose }) {
+  const mats = training.materials || [];
+  return (
+    <Modal title={`${training.name} — Training Materials`} onClose={onClose}>
+      <div className="space-y-2">
+        {mats.length===0 && <div className="text-center text-gray-400 py-8 text-sm">No materials attached to this class.</div>}
+        {mats.map(m=>(
+          <button key={m.id} onClick={()=>openMaterial(m)}
+            className="w-full flex items-center gap-3 border border-gray-100 rounded-lg px-4 py-3 text-left hover:bg-gray-50">
+            <i className={`fa-solid fa-${MATERIAL_ICON[m.kind]||"file"} text-blue-500 text-lg w-5 text-center`}></i>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-700 truncate">{m.name}</div>
+              <div className="text-xs text-gray-400">{m.kind}{m.url?" · external link":m.size?` · ${fmtSize(m.size)}`:""}</div>
+            </div>
+            <Icon name={m.url?"arrow-up-right-from-square":"download"} cls="text-gray-400"/>
+          </button>
+        ))}
+      </div>
+    </Modal>
+  );
+}
+
+// ─── TRAINING LIBRARY ─────────────────────────────────────────────────────────
+function TrainingLibrary({ trainings, update, showToast }) {
+  const [search, setSearch] = useState("");
+  const [filterCat, setFilterCat] = useState("");
+  const [modal, setModal] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+
+  const cats = [...new Set(trainings.map(t=>t.category))].sort();
+
+  const filtered = trainings.filter(t =>
+    (!search || t.name.toLowerCase().includes(search.toLowerCase())) &&
+    (!filterCat || t.category===filterCat)
+  );
+
+  const saveTraining = (t) => {
+    let list = [...trainings];
+    if (t.id) {
+      list = list.map(x => x.id===t.id ? t : x);
+      showToast("Training updated.");
+    } else {
+      list = [...list, { ...t, id:"t_"+Date.now() }];
+      showToast("Training added to library.");
+    }
+    update({ trainings: list });
+    setModal(null);
+  };
+
+  const [viewMats, setViewMats] = useState(null);
+
+  const deleteTraining = (t) => {
+    setConfirm({ msg:`Delete "${t.name}"? This also removes its ${t.materials?.length||0} attached material(s). This cannot be undone.`, onYes:()=>{
+      (t.materials||[]).forEach(m => { if (m.blobKey) delBlob(m.blobKey); });
+      update({ trainings: trainings.filter(x=>x.id!==t.id) });
+      showToast("Training deleted.","success"); setConfirm(null);
+    } });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative">
+            <Icon name="magnifying-glass" cls="absolute left-3 top-2.5 text-gray-400 text-xs"/>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search trainings…"
+              className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg w-56"/>
+          </div>
+          <select value={filterCat} onChange={e=>setFilterCat(e.target.value)}
+            className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+            <option value="">All Categories</option>
+            {cats.map(c=><option key={c}>{c}</option>)}
+          </select>
+        </div>
+        <button onClick={()=>setModal("new")} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700">
+          <Icon name="plus"/>Add Training
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead><tr className="text-xs text-gray-500 border-b border-gray-100 bg-gray-50">
+              <th className="text-left px-5 py-3 font-semibold">Training Name</th>
+              <th className="text-left px-4 py-3 font-semibold">Category</th>
+              <th className="text-left px-4 py-3 font-semibold">Duration</th>
+              <th className="text-left px-4 py-3 font-semibold">Frequency</th>
+              <th className="text-left px-4 py-3 font-semibold">Assigned Roles</th>
+              <th className="text-center px-4 py-3 font-semibold">Materials</th>
+              <th className="text-right px-5 py-3 font-semibold">Actions</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map(t=>{
+                const matCount = (t.materials||[]).length;
+                return (
+                <tr key={t.id} className="table-row border-b border-gray-50">
+                  <td className="px-5 py-3 font-medium text-gray-800">{t.name}</td>
+                  <td className="px-4 py-3"><span className="chip badge-blue">{t.category}</span></td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{t.duration} min</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">{t.frequency}</td>
+                  <td className="px-4 py-3 text-xs text-gray-500">
+                    {t.assignedRoles.length===ROLES.length ? (
+                      <span className="chip badge-green">All Roles</span>
+                    ) : (
+                      <span>{t.assignedRoles.length} role{t.assignedRoles.length!==1?"s":""}</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-center">
+                    {matCount>0 ? (
+                      <button onClick={()=>setViewMats(t)} className="chip badge-gray hover:bg-gray-200">
+                        <Icon name="paperclip" cls="mr-1"/>{matCount}
+                      </button>
+                    ) : <span className="text-gray-300 text-xs">—</span>}
+                  </td>
+                  <td className="px-5 py-3 text-right space-x-2">
+                    <button onClick={()=>setModal(t)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Edit</button>
+                    <button onClick={()=>deleteTraining(t)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                  </td>
+                </tr>
+              );})}
+            </tbody>
+          </table>
+          {filtered.length===0 && <div className="text-center py-12 text-gray-400 text-sm">No trainings found.</div>}
+        </div>
+      </div>
+
+      {modal && <TrainingModal training={modal==="new"?null:modal} onSave={saveTraining} showToast={showToast} onClose={()=>setModal(null)}/>}
+      {viewMats && <MaterialsViewer training={viewMats} onClose={()=>setViewMats(null)}/>}
+      {confirm && <Confirm msg={confirm.msg} onYes={confirm.onYes} onNo={()=>setConfirm(null)}/>}
+    </div>
+  );
+}
+
+function TrainingModal({ training, onSave, onClose, showToast }) {
+  const [form, setForm] = useState(training ? { ...training, materials:[...(training.materials||[])] } : {
+    name:"", category:"Safety", duration:30, frequency:"Annual", assignedRoles:[], materials:[]
+  });
+  const set = (k,v) => setForm(p=>({...p,[k]:v}));
+
+  const toggleRole = (role) => {
+    set("assignedRoles", form.assignedRoles.includes(role)
+      ? form.assignedRoles.filter(r=>r!==role)
+      : [...form.assignedRoles, role]);
+  };
+
+  const submit = (e) => {
+    e.preventDefault();
+    if (!form.name.trim()) return;
+    onSave(form);
+  };
+
+  const cats = ["Safety","Quality","Equipment","Lean","Leadership","Onboarding","HR","Technology","Environmental","Other"];
+
+  return (
+    <Modal title={training?"Edit Training":"Add Training"} onClose={onClose} wide>
+      <form onSubmit={submit} className="space-y-4">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-xs font-medium text-gray-600 mb-1">Training Name *</label>
+            <input value={form.name} onChange={e=>set("name",e.target.value)} required
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+            <select value={form.category} onChange={e=>set("category",e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+              {cats.map(c=><option key={c}>{c}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Duration (minutes)</label>
+            <input type="number" min={1} value={form.duration} onChange={e=>set("duration",+e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm"/>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-600 mb-1">Frequency</label>
+            <select value={form.frequency} onChange={e=>set("frequency",e.target.value)}
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm">
+              {FREQ_OPTIONS.map(f=><option key={f}>{f}</option>)}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <label className="text-xs font-medium text-gray-600">Assign to Roles</label>
+            <div className="flex gap-2">
+              <button type="button" onClick={()=>set("assignedRoles",[...ROLES])} className="text-xs text-blue-600 hover:underline">All</button>
+              <button type="button" onClick={()=>set("assignedRoles",[])} className="text-xs text-gray-500 hover:underline">None</button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 border border-gray-100 rounded-lg p-3">
+            {ROLES.map(role=>(
+              <label key={role} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 rounded px-2 py-1">
+                <input type="checkbox" checked={form.assignedRoles.includes(role)} onChange={()=>toggleRole(role)}
+                  className="rounded text-blue-600"/>
+                {role}
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <MaterialsEditor materials={form.materials||[]} onChange={m=>set("materials", m)} showToast={showToast}/>
+
+        <div className="flex gap-3 pt-2">
+          <button type="button" onClick={onClose} className="flex-1 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50">Cancel</button>
+          <button type="submit" className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">
+            {training?"Save Changes":"Add Training"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+// ─── MATERIALS EDITOR (used inside TrainingModal) ─────────────────────────────
+const MAX_MB = 100;      // hard cap per embedded file
+const WARN_MB = 25;      // warn above this — suggest a link for big videos
+function MaterialsEditor({ materials, onChange, showToast }) {
+  const [busy, setBusy] = useState(false);
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [linkName, setLinkName] = useState("");
+  const [linkUrl, setLinkUrl]   = useState("");
+  const fileRef = useRef(null);
+  const toast = (m,t) => showToast ? showToast(m,t) : null;
+
+  const handleFiles = async (files) => {
+    setBusy(true);
+    try {
+      for (const file of Array.from(files)) {
+        const mb = file.size / 1048576;
+        if (mb > MAX_MB) { toast(`"${file.name}" is ${mb.toFixed(0)} MB — over the ${MAX_MB} MB limit. Use a link instead.`, "error"); continue; }
+        if (mb > WARN_MB) toast(`"${file.name}" is ${mb.toFixed(0)} MB — large files may load slowly. A link is recommended for videos.`, "info");
+        const dataUrl = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+        const blobKey = "ttmat_" + uid();
+        await putBlob(blobKey, { filename:file.name, mime:file.type, data:dataUrl });
+        const mat = { id:uid(), name:file.name, kind:inferKind(file.name, file.type), filename:file.name, mime:file.type, size:file.size, blobKey };
+        materials = [...materials, mat];
+        onChange(materials);
+      }
+    } catch(e) {
+      toast("Upload failed: " + e.message, "error");
+    } finally {
+      setBusy(false);
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+
+  const addLink = () => {
+    if (!linkUrl.trim()) return;
+    let url = linkUrl.trim();
+    if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+    onChange([...materials, { id:uid(), name:linkName.trim()||url, kind:"Link", url }]);
+    setLinkName(""); setLinkUrl(""); setLinkOpen(false);
+  };
+
+  const setKind = (id, kind) => onChange(materials.map(m => m.id===id ? {...m, kind} : m));
+  const remove = (m) => { if (m.blobKey) delBlob(m.blobKey); onChange(materials.filter(x=>x.id!==m.id)); };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="text-xs font-medium text-gray-600">Class Materials — PPTs, Tests, Videos, PDFs</label>
+        <div className="flex gap-2">
+          <button type="button" onClick={()=>fileRef.current?.click()} disabled={busy}
+            className="text-xs flex items-center gap-1 px-2.5 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <Icon name={busy?"spinner":"upload"} cls={busy?"fa-spin":""}/>{busy?"Uploading…":"Upload File"}
+          </button>
+          <button type="button" onClick={()=>setLinkOpen(o=>!o)}
+            className="text-xs flex items-center gap-1 px-2.5 py-1 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50">
+            <Icon name="link"/>Add Link
+          </button>
+        </div>
+      </div>
+      <input ref={fileRef} type="file" multiple className="hidden"
+        onChange={e=>e.target.files?.length && handleFiles(e.target.files)}/>
+
+      {linkOpen && (
+        <div className="flex gap-2 mb-2 bg-gray-50 rounded-lg p-2">
+          <input value={linkName} onChange={e=>setLinkName(e.target.value)} placeholder="Label (e.g. Safety Video)"
+            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm flex-1"/>
+          <input value={linkUrl} onChange={e=>setLinkUrl(e.target.value)} placeholder="https://…  (SharePoint, YouTube)"
+            className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm flex-1"/>
+          <button type="button" onClick={addLink} className="text-xs px-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add</button>
+        </div>
+      )}
+
+      <div className="border border-gray-100 rounded-lg divide-y divide-gray-50">
+        {materials.length===0 && <div className="text-xs text-gray-400 text-center py-4">No materials yet. Upload a file or add a link.</div>}
+        {materials.map(m=>(
+          <div key={m.id} className="flex items-center gap-3 px-3 py-2">
+            <i className={`fa-solid fa-${MATERIAL_ICON[m.kind]||"file"} text-blue-500 w-4 text-center`}></i>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm text-gray-700 truncate">{m.name}</div>
+              <div className="text-xs text-gray-400">{m.url ? "External link" : fmtSize(m.size)}</div>
+            </div>
+            <select value={m.kind} onChange={e=>setKind(m.id, e.target.value)}
+              className="text-xs border border-gray-200 rounded px-1.5 py-1 text-gray-600">
+              {MATERIAL_KINDS.filter(k=>k!=="Link"||m.url).map(k=><option key={k}>{k}</option>)}
+            </select>
+            <button type="button" onClick={()=>openMaterial(m)} className="text-gray-400 hover:text-blue-600 text-xs px-1" title="Open"><Icon name="eye"/></button>
+            <button type="button" onClick={()=>remove(m)} className="text-gray-400 hover:text-red-600 text-xs px-1" title="Remove"><Icon name="trash"/></button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── ROLE MATRIX ─────────────────────────────────────────────────────────────
+function RoleMatrix({ trainings, update, showToast }) {
+  const [selectedRole, setSelectedRole] = useState(ROLES[0]);
+  const [dirty, setDirty] = useState(false);
+  const [local, setLocal] = useState(() => trainings.map(t=>({...t,assignedRoles:[...t.assignedRoles]})));
+
+  useEffect(()=>{
+    setLocal(trainings.map(t=>({...t,assignedRoles:[...t.assignedRoles]})));
+    setDirty(false);
+  },[trainings]);
+
+  const assigned = local.filter(t=>t.assignedRoles.includes(selectedRole));
+  const notAssigned = local.filter(t=>!t.assignedRoles.includes(selectedRole));
+
+  const toggle = (tId) => {
+    setLocal(prev => prev.map(t => {
+      if (t.id!==tId) return t;
+      const has = t.assignedRoles.includes(selectedRole);
+      return { ...t, assignedRoles: has ? t.assignedRoles.filter(r=>r!==selectedRole) : [...t.assignedRoles, selectedRole] };
+    }));
+    setDirty(true);
+  };
+
+  const save = () => {
+    update({ trainings: local });
+    showToast("Role matrix saved.");
+    setDirty(false);
+  };
+
+  const cats = [...new Set(local.map(t=>t.category))].sort();
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-5">
+          <div>
+            <h2 className="text-sm font-semibold text-gray-700">Role Training Matrix</h2>
+            <p className="text-xs text-gray-400 mt-0.5">Select a role and toggle training assignments</p>
+          </div>
+          {dirty && (
+            <button onClick={save} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+              <Icon name="floppy-disk"/>Save Changes
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 mb-6">
+          {ROLES.map(r=>(
+            <button key={r} onClick={()=>setSelectedRole(r)}
+              className={`px-3 py-1.5 text-xs font-medium rounded-full border transition-colors ${selectedRole===r?"bg-blue-600 text-white border-blue-600":"border-gray-200 text-gray-600 hover:border-blue-300"}`}>
+              {r}
+            </button>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <div>
+            <div className="text-xs font-semibold text-green-700 mb-2 flex items-center gap-1">
+              <Icon name="circle-check"/>Assigned ({assigned.length})
+            </div>
+            <div className="space-y-1.5 max-h-96 overflow-y-auto">
+              {assigned.length===0 && <div className="text-xs text-gray-400 py-4 text-center">None assigned</div>}
+              {cats.map(cat => {
+                const items = assigned.filter(t=>t.category===cat);
+                if (!items.length) return null;
+                return (
+                  <div key={cat}>
+                    <div className="text-xs font-medium text-gray-400 px-2 py-1">{cat}</div>
+                    {items.map(t=>(
+                      <div key={t.id} className="flex items-center justify-between bg-green-50 border border-green-100 rounded-lg px-3 py-2">
+                        <div>
+                          <div className="text-xs font-medium text-gray-700">{t.name}</div>
+                          <div className="text-xs text-gray-400">{t.frequency} · {t.duration}min</div>
+                        </div>
+                        <button onClick={()=>toggle(t.id)} className="text-xs text-red-500 hover:text-red-700 font-medium ml-2">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-semibold text-gray-500 mb-2 flex items-center gap-1">
+              <Icon name="minus"/>Not Assigned ({notAssigned.length})
+            </div>
+            <div className="space-y-1.5 max-h-96 overflow-y-auto">
+              {notAssigned.length===0 && <div className="text-xs text-gray-400 py-4 text-center">All trainings assigned</div>}
+              {cats.map(cat => {
+                const items = notAssigned.filter(t=>t.category===cat);
+                if (!items.length) return null;
+                return (
+                  <div key={cat}>
+                    <div className="text-xs font-medium text-gray-400 px-2 py-1">{cat}</div>
+                    {items.map(t=>(
+                      <div key={t.id} className="flex items-center justify-between bg-gray-50 border border-gray-100 rounded-lg px-3 py-2">
+                        <div>
+                          <div className="text-xs font-medium text-gray-700">{t.name}</div>
+                          <div className="text-xs text-gray-400">{t.frequency} · {t.duration}min</div>
+                        </div>
+                        <button onClick={()=>toggle(t.id)} className="text-xs text-blue-600 hover:text-blue-800 font-medium ml-2">Assign</button>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUDIT REPORT ─────────────────────────────────────────────────────────────
+// Flat employee × required-training matrix for compliance audits, with filters
+// and CSV export. Each row shows whether training was completed within its
+// allotted timeframe (Overdue = past its due/recertification date).
+function AuditReport({ employees, trainings, records }) {
+  const [fRole, setFRole]     = useState("");
+  const [fStatus, setFStatus] = useState("");
+  const [fCat, setFCat]       = useState("");
+  const [search, setSearch]   = useState("");
+
+  const cats = [...new Set(trainings.map(t=>t.category))].sort();
+
+  const rows = useMemo(() => {
+    const out = [];
+    employees.filter(e=>e.active).forEach(emp => {
+      applicableTrainings(emp, trainings).forEach(t => {
+        const rec = records[emp.id]?.[t.id];
+        out.push({
+          emp, training:t,
+          status: getStatus(rec),
+          completedDate: rec?.completedDate || "",
+          dueDate: rec?.dueDate || "",
+          score: rec?.score,
+          source: (emp.extraTrainings||[]).includes(t.id) && !t.assignedRoles.includes(emp.role) ? "Cross-training" : "Role",
+        });
+      });
+    });
+    return out;
+  }, [employees, trainings, records]);
+
+  const filtered = rows.filter(r =>
+    (!fRole   || r.emp.role===fRole) &&
+    (!fStatus || r.status===fStatus) &&
+    (!fCat    || r.training.category===fCat) &&
+    (!search  || r.emp.name.toLowerCase().includes(search.toLowerCase()) || r.training.name.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const counts = filtered.reduce((a,r)=>{ a[r.status]=(a[r.status]||0)+1; return a; }, {});
+  const compliant = (counts["Completed"]||0);
+  const pct = filtered.length ? Math.round(compliant/filtered.length*100) : 0;
+
+  const exportCSV = () => {
+    const head = ["Employee","Employee #","Role","Training","Category","Source","Frequency","Last Completed","Score","Due / Recert Date","Status"];
+    const csv = [head.join(",")].concat(filtered.map(r => [
+      r.emp.name, r.emp.employeeNumber, r.emp.role, r.training.name, r.training.category, r.source,
+      r.training.frequency, r.completedDate, r.score!=null?r.score:"", r.dueDate, r.status
+    ].map(v => `"${String(v??"").replace(/"/g,'""')}"`).join(","))).join("\n");
+    const blob = new Blob([csv], { type:"text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = `training-audit-${today()}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <KpiCard icon="list-check" iconBg="bg-blue-100" iconColor="text-blue-600" label="Audit Items" value={filtered.length} sub="Required assignments"/>
+        <KpiCard icon="circle-check" iconBg="bg-green-100" iconColor="text-green-600" label="Compliant" value={`${pct}%`} sub={`${compliant} completed & current`} bar={pct}/>
+        <KpiCard icon="triangle-exclamation" iconBg="bg-red-100" iconColor="text-red-600" label="Overdue" value={counts["Overdue"]||0} sub="Past allotted timeframe" alert={(counts["Overdue"]||0)>0}/>
+        <KpiCard icon="clock" iconBg="bg-amber-100" iconColor="text-amber-600" label="Due Soon" value={counts["Due Soon"]||0} sub="Within 30 days"/>
+        <KpiCard icon="minus" iconBg="bg-gray-100" iconColor="text-gray-500" label="Not Started" value={counts["Not Started"]||0} sub="No record on file"/>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="flex flex-wrap gap-2 items-center justify-between px-5 py-3 border-b border-gray-100">
+          <div className="flex gap-2 flex-wrap">
+            <div className="relative">
+              <Icon name="magnifying-glass" cls="absolute left-3 top-2.5 text-gray-400 text-xs"/>
+              <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search employee or class…"
+                className="pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg w-56"/>
+            </div>
+            <select value={fRole} onChange={e=>setFRole(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+              <option value="">All Roles</option>{ROLES.map(r=><option key={r}>{r}</option>)}
+            </select>
+            <select value={fCat} onChange={e=>setFCat(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+              <option value="">All Categories</option>{cats.map(c=><option key={c}>{c}</option>)}
+            </select>
+            <select value={fStatus} onChange={e=>setFStatus(e.target.value)} className="text-sm border border-gray-200 rounded-lg px-3 py-2">
+              <option value="">All Status</option>{["Completed","Due Soon","Overdue","Not Started"].map(s=><option key={s}>{s}</option>)}
+            </select>
+          </div>
+          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700">
+            <Icon name="file-csv"/>Export CSV
+          </button>
+        </div>
+        <div className="overflow-x-auto max-h-[62vh] overflow-y-auto">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-gray-50 z-10"><tr className="text-xs text-gray-500 border-b border-gray-100">
+              <th className="text-left px-5 py-3 font-semibold">Employee</th>
+              <th className="text-left px-4 py-3 font-semibold">Role</th>
+              <th className="text-left px-4 py-3 font-semibold">Training</th>
+              <th className="text-left px-4 py-3 font-semibold">Source</th>
+              <th className="text-left px-4 py-3 font-semibold">Last Completed</th>
+              <th className="text-center px-4 py-3 font-semibold">Score</th>
+              <th className="text-left px-4 py-3 font-semibold">Due / Recert</th>
+              <th className="text-left px-5 py-3 font-semibold">Status</th>
+            </tr></thead>
+            <tbody>
+              {filtered.map((r,i)=>(
+                <tr key={i} className="table-row border-b border-gray-50">
+                  <td className="px-5 py-2.5">
+                    <div className="font-medium text-gray-800">{r.emp.name}</div>
+                    <div className="text-xs text-gray-400">{r.emp.employeeNumber}</div>
+                  </td>
+                  <td className="px-4 py-2.5 text-xs text-gray-600">{r.emp.role}</td>
+                  <td className="px-4 py-2.5 text-gray-700">{r.training.name}<div className="text-xs text-gray-400">{r.training.category} · {r.training.frequency}</div></td>
+                  <td className="px-4 py-2.5 text-xs">{r.source==="Cross-training" ? <span className="chip badge-blue">Cross</span> : <span className="text-gray-400">Role</span>}</td>
+                  <td className="px-4 py-2.5 text-xs text-gray-500">{r.completedDate||"—"}</td>
+                  <td className="px-4 py-2.5 text-center text-xs text-gray-600">{r.score!=null?`${r.score}%`:"—"}</td>
+                  <td className="px-4 py-2.5 text-xs">
+                    {r.dueDate ? <span className={r.status==="Overdue"?"text-red-600 font-medium":r.status==="Due Soon"?"text-amber-600 font-medium":"text-gray-500"}>{r.dueDate}</span> : "—"}
+                  </td>
+                  <td className="px-5 py-2.5"><StatusBadge status={r.status}/></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length===0 && <div className="text-center py-12 text-gray-400 text-sm">No audit items match your filters.</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── ALERT LOG ────────────────────────────────────────────────────────────────
+function AlertLog({ emailLog }) {
+  return (
+    <div className="space-y-4">
+      <div className="bg-white rounded-xl shadow-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-sm font-semibold text-gray-700">Email Alert Log</h2>
+          <span className="chip badge-blue">{emailLog.length} sent</span>
+        </div>
+        {emailLog.length===0 ? (
+          <div className="text-center py-14 text-gray-400">
+            <Icon name="bell-slash" cls="text-3xl mb-3 block"/>
+            <p className="text-sm">No alerts sent yet.</p>
+            <p className="text-xs mt-1">Alerts are triggered from the Dashboard or Employee views.</p>
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[60vh] overflow-y-auto">
+            {emailLog.map(e=>(
+              <div key={e.id} className="border border-gray-100 rounded-lg px-4 py-3">
+                <div className="flex items-start justify-between">
+                  <div>
+                    <div className="text-sm font-medium text-gray-800">{e.subject}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">To: <span className="font-medium">{e.to}</span></div>
+                    <div className="text-xs text-gray-400 mt-1">{e.body}</div>
+                  </div>
+                  <div className="text-xs text-gray-400 whitespace-nowrap ml-4">{e.sentAt}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>

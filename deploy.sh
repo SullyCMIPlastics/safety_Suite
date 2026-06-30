@@ -9,8 +9,8 @@ set -e
 SERVER="sully@10.85.2.27"
 REMOTE_DIR="~/cmi-cmms"
 
-echo "📦 Copying cmms.html to server..."
-scp cmms.html "$SERVER:$REMOTE_DIR/"
+echo "📦 Copying cmms.html + training.html to server..."
+scp cmms.html training.html "$SERVER:$REMOTE_DIR/"
 
 if [[ "$1" == "--full" ]]; then
   echo "🐳 Copying all files and rebuilding container..."
