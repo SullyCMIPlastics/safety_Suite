@@ -882,7 +882,7 @@ function viewIncident(id){
   const sel = (name,opts,val)=> ro
     ? `<input readonly value="${val||''}" style="background:var(--bg)">`
     : `<select name="${name}">${opts.map(o=>`<option${o===val?' selected':''}>${o}</option>`).join('')}</select>`;
-  const ta = (name,val,rows=3)=> `<textarea name="${name}" rows="${rows}" ${ro?'readonly':''} style="${ro?'background:var(--bg)':'';resize:vertical}">${val||''}</textarea>`;
+  const ta = (name,val,rows=3)=> `<textarea name="${name}" rows="${rows}" ${ro?'readonly':''} style="resize:vertical${ro?';background:var(--bg)':''}">${val||''}</textarea>`;
 
   const depts=['Production','Warehouse','Quality','Tool Room','Engineering','Office','Facilities Maintenance','Vendor','Supplier','Guest'];
   const types=['Accident','Injury','Near Miss','First Aid','Property Damage','Other'];
