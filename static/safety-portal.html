@@ -168,6 +168,15 @@ textarea{resize:vertical;min-height:80px}
   input,select,textarea{border:1px solid #ccc!important;background:#fff!important}
   .sec-title,.sec-sub{display:none}
   .print-hide{display:none!important}
+  /* When printing from the incident modal */
+  body:has(.print-modal) #login-overlay,
+  body:has(.print-modal) #sidebar,
+  body:has(.print-modal) #topbar,
+  body:has(.print-modal) #main{display:none!important}
+  body:has(.print-modal) .modal-overlay{position:static!important;background:none!important;padding:0!important}
+  body:has(.print-modal) .modal-box{box-shadow:none!important;max-width:100%!important;max-height:none!important;overflow:visible!important;border-radius:0!important}
+  body:has(.print-modal) .modal-hd .close-x{display:none!important}
+  body:has(.print-modal) .modal-footer{display:none!important}
   @page{margin:18mm 14mm;size:A4}
 }
 
@@ -696,6 +705,18 @@ function printIncidentForm(){
   document.title = prevTitle;
 }
 
+function printIncidentModal(id){
+  const i = incidents.find(x=>x.id===id); if(!i) return;
+  const prevTitle = document.title;
+  document.title = `CMI Plastics — Incident Report ${id}`;
+  // Temporarily hide everything except the modal content for printing
+  const overlay = document.getElementById('modal-overlay');
+  if(overlay) overlay.classList.add('print-modal');
+  window.print();
+  document.title = prevTitle;
+  if(overlay) overlay.classList.remove('print-modal');
+}
+
 /* ── Attachment helpers ───────────────────────────────────────── */
 const _attStore = { inc: [], inv: [] };
 
@@ -930,9 +951,11 @@ function viewIncident(id){
     </form>`,
     editable
       ? `<button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+         <button class="btn btn-secondary" onclick="printIncidentModal('${id}')">🖨 Print / Save as PDF</button>
          <button class="btn btn-secondary" onclick="closeModal();nav('osha')">View OSHA Form</button>
          <button class="btn btn-primary" onclick="saveIncidentEdit('${id}')">Save Changes</button>`
       : `<button class="btn btn-secondary" onclick="closeModal()">Close</button>
+         <button class="btn btn-secondary" onclick="printIncidentModal('${id}')">🖨 Print / Save as PDF</button>
          <button class="btn btn-primary" onclick="closeModal();nav('osha')">View OSHA Form</button>`
   );
 }
