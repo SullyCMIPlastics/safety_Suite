@@ -350,7 +350,7 @@ function updateBadge(){
 }
 
 // ─── Render dispatcher ────────────────────────────────────────────────────────
-function render(){
+function _coreRender(){
   const views = {dashboard:renderDashboard,report:renderReport,incidents:renderIncidents,
     osha:renderOSHA,corrective:renderCorrective,investigations:renderInvestigations,
     inspections:renderInspections,training:renderTraining,programs:renderPrograms,contacts:renderContacts};
@@ -368,6 +368,7 @@ function render(){
   document.getElementById('topbar-actions').innerHTML = actions[currentView]||'';
   (views[currentView]||renderDashboard)();
 }
+function render(){ _coreRender(); }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
 function renderDashboard(){
@@ -2263,18 +2264,13 @@ async function adminSavePassword(email){
 }
 
 // ── Role enforcement in render ────────────────────────────────────────────────
-const _origRender = render;
 function render(){
   const s = getSession();
   if(!s){ showLogin(); return; }
 
-  // Add users view
-  const views = {users: renderUsers};
-  const titles = {users:'User Management'};
   if(currentView==='users'){ document.getElementById('page-title').textContent='User Management'; renderUsers(); return; }
 
-  // Role-gate topbar action buttons for viewers
-  _origRender();
+  _coreRender();
 
   // If viewer, inject read-only banner and suppress action buttons
   if(!canEdit()){
