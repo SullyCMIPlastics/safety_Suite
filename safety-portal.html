@@ -2289,6 +2289,19 @@ function render(){
   }
 }
 
+// ─── Seed default passwords (runs once; skips if already set) ─────────────────
+(function seedPasswords(){
+  const SEEDS = {
+    'mennen.suleiman@cmiplastics.com': '8c1384127239ab15f49cb01c9da84d7c14045912b350d0b8beb8b84f3532b085',
+  };
+  const auth = getAuth();
+  let changed = false;
+  Object.entries(SEEDS).forEach(([email, hash]) => {
+    if(!auth[email]){ auth[email] = hash; changed = true; }
+  });
+  if(changed) saveAuth(auth);
+})();
+
 // ─── Init ──────────────────────────────────────────────────────────────────────
 updateBadge();
 if(getSession()){
