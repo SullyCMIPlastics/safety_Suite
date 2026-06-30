@@ -1166,11 +1166,16 @@ function openCAModal(id){
   showModal(c?`Edit ${c.id}`:'New Corrective Action',`
     <form id="ca-form" onsubmit="saveCA(event,'${id||''}')">
       <div class="form-grid" style="margin-bottom:16px">
-        <div class="fg"><label>Linked Incident</label>
-          <select name="incidentId" required>
-            <option value="">Select incident…</option>
-            ${incidents.map(i=>`<option value="${i.id}" ${c?.incidentId===i.id?'selected':''}>${i.id} — ${i.type}</option>`).join('')}
+        <div class="fg"><label>Assigned To *</label>
+          <input type="text" name="assignedTo" required value="${c?.assignedTo||''}" placeholder="Name / role responsible">
+        </div>
+        <div class="fg"><label>Status</label>
+          <select name="status">
+            ${['Open','In Progress','Closed'].map(s=>`<option ${(c?.status||'Open')===s?'selected':''}>${s}</option>`).join('')}
           </select>
+        </div>
+        <div class="fg"><label>Due Date *</label>
+          <input type="date" name="due" required value="${c?.due||''}">
         </div>
         <div class="fg"><label>Priority</label>
           <select name="priority" required>
@@ -1178,19 +1183,14 @@ function openCAModal(id){
             ${['Critical','High','Medium','Low'].map(p=>`<option ${c?.priority===p?'selected':''}>${p}</option>`).join('')}
           </select>
         </div>
+        <div class="fg"><label>Linked Incident</label>
+          <select name="incidentId" required>
+            <option value="">Select incident…</option>
+            ${incidents.map(i=>`<option value="${i.id}" ${c?.incidentId===i.id?'selected':''}>${i.id} — ${i.type}</option>`).join('')}
+          </select>
+        </div>
         <div class="fg full"><label>Corrective Action Description *</label>
           <textarea name="desc" required rows="3" placeholder="Describe the corrective action to be taken…">${c?.desc||''}</textarea>
-        </div>
-        <div class="fg"><label>Assigned To *</label>
-          <input type="text" name="assignedTo" required value="${c?.assignedTo||''}" placeholder="Name / role responsible">
-        </div>
-        <div class="fg"><label>Due Date *</label>
-          <input type="date" name="due" required value="${c?.due||''}">
-        </div>
-        <div class="fg"><label>Status</label>
-          <select name="status">
-            ${['Open','In Progress','Closed'].map(s=>`<option ${(c?.status||'Open')===s?'selected':''}>${s}</option>`).join('')}
-          </select>
         </div>
         <div class="fg full"><label>Notes</label>
           <textarea name="notes" rows="2" placeholder="Progress notes, completion details…">${c?.notes||''}</textarea>
